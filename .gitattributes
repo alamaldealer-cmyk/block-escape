@@ -1,0 +1,11 @@
+* text=auto eol=lf
+*.jar binary -filter -diff -merge
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.mp3 binary
+*.wav binary
+*.aac binary
+*.zip binary
