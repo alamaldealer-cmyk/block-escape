@@ -2483,7 +2483,7 @@ function SettingsScreen({ onBack }: { onBack: () => void }) {
                     </div>
                 </button>
 
-                <p className="mt-8 text-white/20 text-[9px] font-black tracking-[0.3em] uppercase text-center w-full absolute -bottom-12">Neon Slide v1.0.4 - Proto-System</p>
+                <p className="mt-8 text-white/20 text-[9px] font-black tracking-[0.3em] uppercase text-center w-full absolute -bottom-12">Escape Block v1.0.4 - Proto-System</p>
             </motion.div>
 
             {/* Document Modals */}
@@ -2499,7 +2499,7 @@ function SettingsScreen({ onBack }: { onBack: () => void }) {
                             <div className="flex-1 overflow-y-auto no-scrollbar pb-6 pr-2 relative z-10">
                                 <div className="text-white/70 text-xs flex flex-col gap-6 font-mono leading-relaxed tracking-wide">
                                     <p className="opacity-50 uppercase tracking-widest border-b border-[#00ffff]/20 pb-2">Last Updated: {new Date().toLocaleDateString()}</p>
-                                    <p>Neon Slide (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) is committed to protecting your privacy. This Privacy Policy explains how your information is collected, used, and disclosed when you use our mobile application (&quot;App&quot;).</p>
+                                    <p>Escape Block (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) is committed to protecting your privacy. This Privacy Policy explains how your information is collected, used, and disclosed when you use our mobile application (&quot;App&quot;).</p>
                                     
                                     <div>
                                         <p className="text-[#00ffff] font-bold uppercase mb-2 tracking-widest">1. Data Collection</p>
