@@ -340,7 +340,7 @@ const SuccessScreen = ({
                 onDoubleReward();
                 // Preload next reward
                 await AdMob.prepareRewardVideoAd({
-                    adId: 'ca-app-pub-3940256099942544/5224354917',
+                    adId: 'ca-app-pub-5852253821474846/9830775670',
                 });
             } catch (e) {
                 console.error('AdMob Reward Error:', e);
@@ -370,7 +370,7 @@ const SuccessScreen = ({
                 await AdMob.showInterstitial();
                 // Preload next interstitial
                 await AdMob.prepareInterstitial({
-                    adId: 'ca-app-pub-3940256099942544/1033173712',
+                    adId: 'ca-app-pub-5852253821474846/4427465246',
                 });
             } catch(e) {
                 console.log('Interstitial not ready or failed');
@@ -559,7 +559,7 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
               
               // Prepare next ad
               await AdMob.prepareRewardVideoAd({
-                  adId: 'ca-app-pub-3940256099942544/5224354917',
+                  adId: 'ca-app-pub-5852253821474846/9830775670',
               });
           } catch(e) {
               console.error('AdMob Error', e);
@@ -2125,7 +2125,7 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
                 
                 // Prepare next ad
                 await AdMob.prepareRewardVideoAd({
-                    adId: 'ca-app-pub-3940256099942544/5224354917',
+                    adId: 'ca-app-pub-5852253821474846/9830775670',
                 });
             } catch(e) {
                 console.error('AdMob Error', e);
@@ -2737,16 +2737,16 @@ export default function App() {
           if (Capacitor.isNativePlatform()) {
               try {
                   await AdMob.initialize({
-                      initializeForTesting: true,
+                      initializeForTesting: false,
                   });
                   console.log('AdMob initialized');
                   
                   // Preload ads
                   await AdMob.prepareRewardVideoAd({
-                      adId: 'ca-app-pub-3940256099942544/5224354917',
+                      adId: 'ca-app-pub-5852253821474846/9830775670',
                   });
                   await AdMob.prepareInterstitial({
-                      adId: 'ca-app-pub-3940256099942544/1033173712',
+                      adId: 'ca-app-pub-5852253821474846/4427465246',
                   });
               } catch (e) {
                   console.error('Failed to initialize AdMob', e);
