@@ -21,8 +21,6 @@ import logoImg from './assets/logo.png';
 import { LEVELS, BlockData } from './levels';
 import { audio } from './audio';
 import { getConstraints, generateLevel } from './generator';
-import confetti from 'canvas-confetti';
-
 
 // Hook to get responsive board size
 function useBoardSize(ref: React.RefObject<HTMLDivElement | null>) {
@@ -467,32 +465,6 @@ const SuccessScreen = ({
     
     useEffect(() => {
         audio.playSuccessSwell();
-        
-        // Trigger confetti
-        const end = Date.now() + 1.5 * 1000;
-        const colors = ['#00ffff', '#ffaa00', '#ff00aa', '#ffffff'];
-
-        (function frame() {
-            confetti({
-                particleCount: 4,
-                angle: 60,
-                spread: 55,
-                origin: { x: 0 },
-                colors: colors
-            });
-            confetti({
-                particleCount: 4,
-                angle: 120,
-                spread: 55,
-                origin: { x: 1 },
-                colors: colors
-            });
-
-            if (Date.now() < end) {
-                requestAnimationFrame(frame);
-            }
-        }());
-
         // Play star sounds staggered to match animations
         for (let s = 1; s <= stars; s++) {
             const delay = (0.6 + s * 0.15) * 1000;
