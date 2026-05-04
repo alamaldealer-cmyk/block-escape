@@ -10,6 +10,7 @@ import {
     ShoppingCart, Settings, Lock, Star, Coins, Hammer, Shuffle, Ghost, PlusCircle, ArrowLeft, Eye, ArrowRight, Heart, Video, Timer, Hand, ChevronsDown
 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
+import confetti from 'canvas-confetti';
 import { AdMob, RewardAdOptions, AdLoadInfo, RewardAdPluginEvents } from '@capacitor-community/admob';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { App as CapacitorApp } from '@capacitor/app';
@@ -465,6 +466,26 @@ const SuccessScreen = ({
     
     useEffect(() => {
         audio.playSuccessSwell();
+        
+        // Party popper confetti effect
+        const duration = 3 * 1000;
+        const animationEnd = Date.now() + duration;
+        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 200 };
+
+        const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+        const interval: any = setInterval(function() {
+            const timeLeft = animationEnd - Date.now();
+
+            if (timeLeft <= 0) {
+                return clearInterval(interval);
+            }
+
+            const particleCount = 50 * (timeLeft / duration);
+            confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+            confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+        }, 250);
+
         // Play star sounds staggered to match animations
         for (let s = 1; s <= stars; s++) {
             const delay = (0.6 + s * 0.15) * 1000;
@@ -473,6 +494,8 @@ const SuccessScreen = ({
                 Haptics.impact({ style: ImpactStyle.Light });
             }, delay);
         }
+
+        return () => clearInterval(interval);
     }, [stars]);
 
     const handleClaim = () => {
