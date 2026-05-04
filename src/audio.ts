@@ -10,6 +10,9 @@ class NeonAudio {
     sfxGain: GainNode | null = null;
     
     bgmElement: HTMLAudioElement | null = null;
+    coinElement: HTMLAudioElement | null = null;
+    starElement: HTMLAudioElement | null = null;
+    winElement: HTMLAudioElement | null = null;
 
     init() {
         if (!this.initialized) {
@@ -37,6 +40,18 @@ class NeonAudio {
                 this.bgmElement = new Audio(bgmAudioUrl);
                 this.bgmElement.loop = true;
                 this.bgmElement.volume = this.globalVolume;
+            }
+            if (!this.coinElement) {
+                this.coinElement = new Audio('/coinaudio.mp3');
+                this.coinElement.preload = 'auto';
+            }
+            if (!this.starElement) {
+                this.starElement = new Audio('/stars.mp3');
+                this.starElement.preload = 'auto';
+            }
+            if (!this.winElement) {
+                this.winElement = new Audio('/win.mp3');
+                this.winElement.preload = 'auto';
             }
         }
         if (this.ctx && this.ctx.state === 'suspended') {
@@ -189,24 +204,155 @@ class NeonAudio {
         const ctx = this.ctx;
         const now = ctx.currentTime;
         
-        const notes = [440, 554.37, 659.25, 880]; // A major chord
+        // 1. Celebratory Chord Layer
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C major 7/9 vibes
         notes.forEach((freq, i) => {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.connect(gain);
             gain.connect(this.sfxGain!);
             
-            osc.type = 'sine';
-            osc.frequency.value = freq;
+            osc.type = i % 2 === 0 ? 'triangle' : 'sine';
+            osc.frequency.setValueAtTime(freq, now);
+            osc.frequency.exponentialRampToValueAtTime(freq * 1.01, now + 0.5);
             
-            const time = now + i * 0.1;
+            const time = now + i * 0.05;
             gain.gain.setValueAtTime(0, time);
-            gain.gain.linearRampToValueAtTime(0.2, time + 0.05);
-            gain.gain.linearRampToValueAtTime(0.001, time + 0.4);
+            gain.gain.linearRampToValueAtTime(0.15, time + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + 1.0);
             
             osc.start(time);
-            osc.stop(time + 0.4);
+            osc.stop(time + 1.0);
         });
+
+        // 2. High Shimmer Layer
+        const shimmerOsc = ctx.createOscillator();
+        const shimmerGain = ctx.createGain();
+        shimmerOsc.type = 'sine';
+        shimmerOsc.frequency.setValueAtTime(2000, now);
+        shimmerOsc.frequency.linearRampToValueAtTime(4000, now + 0.3);
+        
+        shimmerGain.gain.setValueAtTime(0, now);
+        shimmerGain.gain.linearRampToValueAtTime(0.05, now + 0.1);
+        shimmerGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        
+        shimmerOsc.connect(shimmerGain);
+        shimmerGain.connect(this.sfxGain!);
+        shimmerOsc.start(now);
+        shimmerOsc.stop(now + 0.4);
+    }
+
+    playSuccessSwell() {
+        this.init();
+        
+        try {
+            if (this.winElement) {
+                const winSfx = this.winElement.cloneNode() as HTMLAudioElement;
+                winSfx.volume = this.globalVolume;
+                winSfx.play().catch(() => {});
+            }
+        } catch (e) {}
+
+        if (!this.ctx || !this.sfxGain) return;
+        const ctx = this.ctx;
+        const now = ctx.currentTime;
+        
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(800, now + 0.6);
+        
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.3, now + 0.4);
+        gain.gain.linearRampToValueAtTime(0.001, now + 0.6);
+        
+        osc.start(now);
+        osc.stop(now + 0.6);
+    }
+
+    playCoinDrop() {
+        this.init();
+        
+        try {
+            if (this.coinElement) {
+                const coinSfx = this.coinElement.cloneNode() as HTMLAudioElement;
+                coinSfx.volume = this.globalVolume;
+                coinSfx.play().catch(() => {});
+            }
+        } catch (e) {}
+
+        if (!this.ctx || !this.sfxGain) return;
+        const ctx = this.ctx;
+        const now = ctx.currentTime;
+        
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        
+        // High pitched metallic ting
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(1200 + Math.random() * 400, now);
+        osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+        
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.1, now + 0.02); // Lowered volume
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        
+        osc.start(now);
+        osc.stop(now + 0.15);
+    }
+
+    playStar(index: number) {
+        this.init();
+        
+        try {
+            if (this.starElement) {
+                const starSfx = this.starElement.cloneNode() as HTMLAudioElement;
+                starSfx.volume = this.globalVolume;
+                starSfx.play().catch(() => {});
+            }
+        } catch (e) {}
+
+        if (!this.ctx || !this.sfxGain) return;
+        const ctx = this.ctx;
+        const now = ctx.currentTime;
+        
+        // Progressive pitch based on star index
+        const baseFreq = 880 + (index * 440); // A5, E6, A6 approx
+        
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(baseFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, now + 0.1);
+        
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.2, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        
+        osc.start(now);
+        osc.stop(now + 0.3);
+
+        // Add a secondary resonance for "sparkle"
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(this.sfxGain);
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(baseFreq * 2.01, now);
+        gain2.gain.setValueAtTime(0, now);
+        gain2.gain.linearRampToValueAtTime(0.1, now + 0.01);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc2.start(now);
+        osc2.stop(now + 0.15);
     }
 
     playCollect() {

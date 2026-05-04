@@ -21,6 +21,8 @@ import logoImg from './assets/logo.png';
 import { LEVELS, BlockData } from './levels';
 import { audio } from './audio';
 import { getConstraints, generateLevel } from './generator';
+import confetti from 'canvas-confetti';
+
 
 // Hook to get responsive board size
 function useBoardSize(ref: React.RefObject<HTMLDivElement | null>) {
@@ -307,6 +309,142 @@ const PowerUpButton = ({
     );
 };
 
+/**
+ * MoneyVault: A high-tech coin collection component for the SuccessScreen
+ */
+const MoneyVault = ({ amount, rewardMultiplier, isClaiming, onClaimComplete }: { amount: number, rewardMultiplier: number, isClaiming: boolean, onClaimComplete: () => void }) => {
+    const [displayAmount, setDisplayAmount] = useState(0);
+    const [coins, setCoins] = useState<{ id: number; startX: number; startY: number; delay: number }[]>([]);
+    const vaultRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!isClaiming) return;
+        
+        // 1. Create flying coins exactly matching the amount
+        const newCoins = Array.from({ length: amount }).map((_, i) => {
+            const sideX = (Math.random() > 0.5 ? 1 : -1);
+            return {
+                id: i,
+                startX: (Math.random() - 0.5) * 40, // Spread near the button
+                startY: 180 + Math.random() * 30, // Start down where the button is
+                midX: sideX * (60 + Math.random() * 80), // Arc outward wide
+                midY: 80 - Math.random() * 60, // Peak of arc (between button and vault)
+                delay: i * 0.15 // Smooth staggered start
+            };
+        });
+        setCoins(newCoins);
+    }, [isClaiming, amount]);
+
+    return (
+        <div className="w-full flex flex-col items-center mb-4 relative z-50">
+            {/* Flying Coins Container */}
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center top-0 overflow-visible z-[100]">
+                <AnimatePresence>
+                    {coins.map((coin) => (
+                        <motion.div
+                            key={coin.id}
+                            initial={{ scale: 0, x: coin.startX, y: coin.startY, opacity: 0, rotate: 0 }}
+                            animate={{ 
+                                x: [coin.startX, coin.midX, 0], 
+                                y: [coin.startY, coin.midY, 10], // Landing at vault icon
+                                scale: [0.3, 1.5, 0.5],
+                                opacity: [0, 1, 0.8, 0],
+                                rotate: [0, 180, 360]
+                            }}
+                            transition={{ 
+                                delay: coin.delay,
+                                duration: 0.9,
+                                times: [0, 0.5, 0.9, 1],
+                                ease: ["easeOut", "easeInOut", "easeIn"]
+                            }}
+                            onAnimationComplete={() => {
+                                audio.playCoinDrop();
+                                Haptics.impact({ style: ImpactStyle.Light });
+                                setDisplayAmount(prev => prev + 1); // Increment perfectly as it lands
+                                
+                                // If it's the last coin, wait a second then proceed
+                                if (coin.id === amount - 1) {
+                                    setTimeout(onClaimComplete, 1200);
+                                }
+                            }}
+                            className="absolute"
+                        >
+                            <div className="w-7 h-7 rounded-full flex items-center justify-center relative">
+                                <div className="absolute inset-0 bg-gradient-to-br from-[#ffd700] to-[#b8860b] rounded-full shadow-[0_0_10px_#ffaa00]" />
+                                <span className="font-black text-amber-900 text-xs relative z-10">$</span>
+                            </div>
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
+            </div>
+
+            {/* The Vault UI container */}
+            <motion.div 
+                ref={vaultRef}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.8, type: "spring", stiffness: 200, damping: 20 }}
+                className="relative w-full max-w-[240px] bg-gradient-to-b from-[#1a1c23] to-[#0a0c10] border-[1.5px] border-[#ffaa00]/60 rounded-xl p-3 flex flex-col items-center shadow-[0_5px_15px_rgba(255,170,0,0.15)] overflow-hidden"
+            >
+                {/* Vault Accents & Sheen */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none z-0" />
+                
+                {/* Industrial Screws Detail */}
+                <div className="absolute top-1.5 left-1.5 w-1.5 h-1.5 rounded-full border border-white/20 bg-black/80 shadow-inner" />
+                <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full border border-white/20 bg-black/80 shadow-inner" />
+                <div className="absolute bottom-1.5 left-1.5 w-1.5 h-1.5 rounded-full border border-white/20 bg-black/80 shadow-inner" />
+                <div className="absolute bottom-1.5 right-1.5 w-1.5 h-1.5 rounded-full border border-white/20 bg-black/80 shadow-inner" />
+
+                <div className="flex items-center justify-center gap-3 relative z-10 w-full mb-1">
+                    {/* Coin Icon Container */}
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-[#ffaa00] blur-md opacity-20" />
+                        <div className="relative p-2 bg-gradient-to-br from-[#2a2c35] to-[#111318] rounded-xl border border-[#ffaa00]/30 shadow-inner flex items-center justify-center">
+                            <Coins className="w-6 h-6 text-[#ffaa00] drop-shadow-[0_0_5px_rgba(255,170,0,0.8)]" />
+                        </div>
+                    </div>
+                    
+                    {/* Value Container */}
+                    <div className="flex flex-col items-start bg-black/60 px-3 py-1.5 rounded-lg border border-white/10 min-w-[110px] shadow-inner">
+                        <span className="text-[9px] text-[#ffaa00]/80 font-black tracking-[0.2em] uppercase leading-none mb-0.5">REWARD</span>
+                        <div className="flex items-baseline gap-1">
+                            <motion.span 
+                                key={displayAmount}
+                                initial={{ y: -5, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#ffd700] to-[#ffaa00] drop-shadow-[0_2px_5px_rgba(255,170,0,0.4)] font-mono leading-none"
+                            >
+                                {displayAmount}
+                            </motion.span>
+                            {rewardMultiplier > 1 && (
+                                <motion.span 
+                                    initial={{ scale: 0, rotate: -10 }}
+                                    animate={{ scale: 1, rotate: 0 }}
+                                    transition={{ type: "spring", delay: 0.5 }}
+                                    className="text-[9px] bg-gradient-to-r from-[#ff0055] to-[#ff00aa] text-white px-1 rounded font-black ml-1.5 shadow-[0_0_5px_rgba(255,0,85,0.5)] border border-white/30"
+                                >
+                                    2X
+                                </motion.span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Animated progress/LED strip */}
+                <div className="w-full h-[2px] mt-2 bg-black/80 rounded-full overflow-hidden relative">
+                    <motion.div 
+                        initial={{ x: '-100%' }}
+                        animate={{ x: '100%' }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                        className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-[#ffaa00] to-transparent opacity-80"
+                    />
+                </div>
+            </motion.div>
+        </div>
+    );
+};
+
 const SuccessScreen = ({ 
     levelIndex, 
     moves, 
@@ -325,9 +463,61 @@ const SuccessScreen = ({
     const [isWatchAd, setIsWatchAd] = useState(false);
     const [rewardMultiplier, setRewardMultiplier] = useState(1);
     const [isAdLoading, setIsAdLoading] = useState(false);
+    const [isClaiming, setIsClaiming] = useState(false);
+    
+    useEffect(() => {
+        audio.playSuccessSwell();
+        
+        // Trigger confetti
+        const end = Date.now() + 1.5 * 1000;
+        const colors = ['#00ffff', '#ffaa00', '#ff00aa', '#ffffff'];
+
+        (function frame() {
+            confetti({
+                particleCount: 4,
+                angle: 60,
+                spread: 55,
+                origin: { x: 0 },
+                colors: colors
+            });
+            confetti({
+                particleCount: 4,
+                angle: 120,
+                spread: 55,
+                origin: { x: 1 },
+                colors: colors
+            });
+
+            if (Date.now() < end) {
+                requestAnimationFrame(frame);
+            }
+        }());
+
+        // Play star sounds staggered to match animations
+        for (let s = 1; s <= stars; s++) {
+            const delay = (0.6 + s * 0.15) * 1000;
+            setTimeout(() => {
+                audio.playStar(s);
+                Haptics.impact({ style: ImpactStyle.Light });
+            }, delay);
+        }
+    }, [stars]);
+
+    const handleClaim = () => {
+        if (isClaiming || isAdLoading || isWatchAd) return;
+        audio.playTap();
+        setIsClaiming(true); // Triggers MoneyVault animation
+        // onNext is called by MoneyVault when animation finishes
+    };
+
+    const triggerClaimProcess = () => {
+        setRewardMultiplier(2);
+        onDoubleReward();
+        setIsClaiming(true);
+    };
 
     const handleDouble = async () => {
-        if (rewardMultiplier > 1 || isWatchAd || isAdLoading) return;
+        if (rewardMultiplier > 1 || isWatchAd || isAdLoading || isClaiming) return;
         
         setIsWatchAd(true);
         setIsAdLoading(true);
@@ -336,35 +526,25 @@ const SuccessScreen = ({
         if (Capacitor.isNativePlatform()) {
             try {
                 await AdMob.showRewardVideoAd();
-                setRewardMultiplier(2);
-                onDoubleReward();
+                triggerClaimProcess();
                 // Preload next reward
-                await AdMob.prepareRewardVideoAd({
+                AdMob.prepareRewardVideoAd({
                     adId: 'ca-app-pub-5852253821474846/9830775670',
-                });
+                }).catch(() => {});
             } catch (e) {
                 console.error('AdMob Reward Error:', e);
                 // Fallback for failed ad in dev or bad connection
-                setRewardMultiplier(2);
-                onDoubleReward();
-            } finally {
-                setIsWatchAd(false);
-                setIsAdLoading(false);
+                triggerClaimProcess();
             }
         } else {
-            // Dev Fallback
+            // Web Mock Ad Timeout
             setTimeout(() => {
-                setRewardMultiplier(2);
-                onDoubleReward();
-                setIsWatchAd(false);
-                setIsAdLoading(false);
-            }, 2000);
+                triggerClaimProcess();
+            }, 1000);
         }
     };
 
-    const handleNext = async () => {
-        audio.playTap();
-        
+    const proceedToNext = async () => {
         if (Capacitor.isNativePlatform() && (levelIndex + 1) % 2 === 0) {
             try {
                 await AdMob.showInterstitial();
@@ -436,7 +616,7 @@ const SuccessScreen = ({
                 </motion.div>
 
                 {/* Stars container with glow */}
-                <div className="relative flex gap-1.5 my-8 md:my-12">
+                <div className="relative flex gap-1.5 my-8 md:my-10">
                     <div className="absolute inset-x-[-40px] inset-y-[-20px] bg-[#ffaa00]/10 blur-3xl rounded-full -z-10" />
                     {[1, 2, 3].map((s) => (
                         <motion.div
@@ -447,7 +627,7 @@ const SuccessScreen = ({
                             className="relative"
                         >
                             <Star 
-                                className={`w-16 h-16 ${s <= stars ? 'text-[#ffaa00] fill-[#ffaa00]' : 'text-white/5 fill-white/5'}`} 
+                                className={`w-14 h-14 md:w-16 md:h-16 ${s <= stars ? 'text-[#ffaa00] fill-[#ffaa00]' : 'text-white/5 fill-white/5'}`} 
                                 strokeWidth={s <= stars ? 0.5 : 2}
                             />
                             {s <= stars && (
@@ -461,61 +641,59 @@ const SuccessScreen = ({
                     ))}
                 </div>
 
-                <div className="mt-auto w-full flex flex-col gap-4 mb-10">
-                    <p className="text-white/60 text-[11px] font-black tracking-[0.4em] uppercase text-center mb-1">EARNED</p>
+                {/* MODIFIED: Money Box Vault */}
+                <MoneyVault 
+                    amount={baseReward * rewardMultiplier} 
+                    rewardMultiplier={rewardMultiplier} 
+                    isClaiming={isClaiming}
+                    onClaimComplete={proceedToNext}
+                />
+
+                <div className="w-full flex flex-col gap-3 mb-6">
+                    <p className="text-[#00ffff]/40 text-[9px] font-black tracking-[0.5em] uppercase text-center mb-1">
+                        {isClaiming ? "PROCESSING REWARD..." : "TRANSACTION STATUS: PENDING"}
+                    </p>
                     
                     {/* Main Claim Button */}
                     <button 
-                        onClick={handleNext}
-                        className="relative group w-full h-[60px] bg-gradient-to-r from-[#00ffff] to-[#0088ff] rounded-2xl flex items-center justify-center overflow-hidden active:scale-95 transition-all shadow-[0_10px_30px_rgba(0,255,255,0.25)]"
+                        onClick={handleClaim}
+                        disabled={isClaiming}
+                        className={`relative group w-full h-[54px] bg-gradient-to-r from-[#00ffff] to-[#0088ff] rounded-xl flex items-center justify-center overflow-hidden active:scale-95 transition-all shadow-[0_5px_20px_rgba(0,255,255,0.2)] ${isClaiming ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
                     >
                         <div className="absolute inset-0 bg-white/5 group-hover:bg-white/10 transition-colors" />
                         <div className="relative flex items-center justify-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-black/20 flex items-center justify-center text-black">
-                                <Star className="w-5 h-5 fill-current" />
+                            <div className="w-7 h-7 rounded-lg bg-black/20 flex items-center justify-center text-black">
+                                <Star className="w-4 h-4 fill-current" />
                             </div>
-                            <span className="text-black font-black tracking-widest text-lg">NEXT LEVEL</span>
+                            <span className="text-black font-black tracking-widest text-base">CLAIM NOW</span>
                         </div>
                         {/* Continuous shimmer */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_3s_infinite]" />
+                        {!isClaiming && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-[shimmer_3s_infinite]" />}
                     </button>
 
                     {/* Double Reward Button */}
                     <button 
                         onClick={handleDouble}
-                        disabled={rewardMultiplier > 1 || isWatchAd}
-                        className={`relative group w-full h-[60px] bg-gradient-to-r from-[#ffaa00] to-[#ff6600] rounded-2xl flex items-center justify-center overflow-hidden active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,170,0,0.25)] ${rewardMultiplier > 1 ? 'opacity-40 grayscale' : ''}`}
+                        disabled={rewardMultiplier > 1 || isWatchAd || isClaiming}
+                        className={`relative group w-full h-[54px] bg-gradient-to-r from-[#ffaa00] to-[#ff6600] rounded-xl flex items-center justify-center overflow-hidden active:scale-95 transition-all shadow-[0_5px_20px_rgba(255,170,0,0.2)] ${(rewardMultiplier > 1 || isClaiming) ? 'hidden' : ''}`}
                     >
                         {isWatchAd ? (
-                             <div className="flex items-center gap-3">
-                                <div className="w-5 h-5 border-3 border-black/20 border-t-black rounded-full animate-spin" />
-                                <span className="text-black font-black tracking-widest text-sm">LOADING...</span>
+                             <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                                <span className="text-black font-black tracking-widest text-[11px]">LOADING...</span>
                             </div>
                         ) : (
                             <div className="relative flex items-center justify-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-black/20 flex items-center justify-center text-black">
-                                    <Eye className="w-5 h-5" />
+                                <div className="w-7 h-7 rounded-lg bg-black/20 flex items-center justify-center text-black">
+                                    <Eye className="w-4 h-4" />
                                 </div>
                                 <div className="flex flex-col items-start justify-center">
                                     <span className="text-black font-black tracking-widest text-sm leading-tight">X2 REWARD</span>
-                                    <span className="text-black/60 font-bold text-[9px] tracking-widest leading-none">(WATCH AD)</span>
+                                    <span className="text-black/60 font-bold text-[8px] tracking-widest leading-none">(WATCH AD)</span>
                                 </div>
                             </div>
                         )}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite]" />
-                    </button>
-
-                    {/* Next Level Button */}
-                    <button 
-                        onClick={handleNext}
-                        className="group relative w-full h-[60px] bg-white/[0.03] border-2 border-[#00ffff]/30 rounded-2xl flex items-center justify-center hover:bg-[#00ffff]/10 active:scale-95 transition-all mt-4"
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-[#00ffff]/10 flex items-center justify-center text-[#00ffff]">
-                                <ChevronsRight className="w-5 h-5" />
-                            </div>
-                            <span className="text-[#00ffff] font-black tracking-widest text-base">NEXT LEVEL</span>
-                        </div>
                     </button>
                 </div>
             </motion.div>
@@ -543,6 +721,7 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
   const [refillItem, setRefillItem] = useState<{id: PowerUpType, name: string} | null>(null);
   const [isWatchingAd, setIsWatchingAd] = useState(false);
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
+  const [showBackConfirm, setShowBackConfirm] = useState(false);
 
   const handleRefillAd = async () => {
       setIsWatchingAd(true);
@@ -636,7 +815,7 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
   };
 
   useEffect(() => {
-     if (hasWon || hasFailed || isLoading || isExiting) return;
+     if (hasWon || hasFailed || isLoading || isExiting || isWatchingAd || showTutorial || showRefillModal || showRestartConfirm || showBackConfirm) return;
      const tid = setInterval(() => {
        setTimeLeft(p => {
          if (p <= 1) {
@@ -661,7 +840,7 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
        });
      }, 1000);
      return () => clearInterval(tid);
-   }, [hasWon, hasFailed, isLoading, isExiting, setLives]);
+   }, [hasWon, hasFailed, isLoading, isExiting, isWatchingAd, showTutorial, showRefillModal, showRestartConfirm, showBackConfirm, setLives]);
 
    useEffect(() => {
       if (hasWon || hasFailed) {
@@ -881,6 +1060,12 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
       }
   };
 
+  const handleBackConfirm = () => {
+      audio.playTap();
+      setLives(l => Math.max(0, l - 1));
+      onBack();
+  };
+
   return (
     <div className="fixed inset-0 w-full h-full flex flex-col overflow-hidden select-none">
         <img 
@@ -893,7 +1078,7 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
         {/* Header HUD: Compact for mobile */}
         <div className="w-full h-16 md:h-20 flex justify-between items-center px-4 z-30 shrink-0">
             <button 
-                onClick={() => { audio.playTap(); onBack(); }}
+                onClick={() => { audio.playTap(); setShowBackConfirm(true); }}
                 className="w-10 h-10 rounded-xl bg-[#030712] border border-[#00ffff]/30 text-[#00ffff] flex items-center justify-center hover:bg-[#00ffff]/10 transition-all active:scale-95"
             >
                 <ArrowLeft className="w-5 h-5" />
@@ -1611,6 +1796,86 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
                                 >
                                     <div className="absolute inset-0 bg-[#ffaa00]/20 -translate-x-full group-hover:translate-x-0 transition-transform duration-500 skew-x-[-20deg]" />
                                     <span className="relative z-10 text-center w-full">CONFIRM</span>
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+
+            {showBackConfirm && (
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[400] flex items-center justify-center bg-[#02050a]/95 backdrop-blur-xl px-4"
+                >
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,255,255,0.1)_0%,_transparent_50%)]" />
+                    </div>
+
+                    <motion.div 
+                        initial={{ scale: 0.9, y: 30, opacity: 0 }}
+                        animate={{ scale: 1, y: 0, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                        className="bg-black/80 backdrop-blur-md border border-[#00ffff]/30 w-full max-w-[340px] flex flex-col shadow-[0_0_60px_rgba(0,255,255,0.15)] relative overflow-hidden rounded-3xl p-8"
+                    >
+                        {/* Corner Accents */}
+                        <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-[#00ffff]/50 rounded-tl-3xl m-1" />
+                        <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-[#00ffff]/50 rounded-tr-3xl m-1" />
+                        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-[#00ffff]/50 rounded-bl-3xl m-1" />
+                        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-[#00ffff]/50 rounded-br-3xl m-1" />
+                        
+                        <div className="absolute -inset-40 bg-[#00ffff]/10 blur-[80px] rounded-full -z-10 animate-pulse pointer-events-none" />
+                        <motion.div 
+                            animate={{ y: ['0%', '100%'] }} 
+                            transition={{ duration: 4, repeat: Infinity, ease: 'linear' }} 
+                            className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#00ffff]/40 to-transparent shadow-[0_0_10px_#00ffff] pointer-events-none" 
+                        />
+
+                        <div className="flex flex-col items-center relative z-10 w-full mt-2">
+                            <motion.div 
+                                className="w-20 h-20 rounded-full border border-[#00ffff]/20 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(0,255,255,0.2)] bg-[#00ffff]/5"
+                            >
+                                <ArrowLeft className="w-8 h-8 text-[#00ffff]" />
+                            </motion.div>
+
+                            <h3 className="text-3xl font-black text-center text-white tracking-widest uppercase mb-1 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">QUIT</h3>
+                            <p className="text-[10px] text-[#00ffff] font-black tracking-[0.2em] uppercase opacity-60">ABANDON OPERATION?</p>
+                            
+                            <div className="h-[1px] w-16 bg-gradient-to-r from-transparent via-[#00ffff] to-transparent mt-3 mb-5" />
+
+                            <div className="flex flex-col items-center gap-1 bg-[#ff5e5e]/5 border border-[#ff5e5e]/20 py-3 px-6 rounded-lg w-full relative overflow-hidden mb-6">
+                                <div className="absolute inset-0 bg-[#ff5e5e]/5" />
+                                <div className="flex items-center gap-2 mb-1 relative z-10">
+                                    <Heart className="w-3.5 h-3.5 text-[#ff5e5e]" />
+                                    <span className="text-white/60 font-black tracking-widest uppercase text-[10px]">Life Cost</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm relative z-10 font-mono mt-1">
+                                    <span className="text-white font-bold text-lg">{lives}</span>
+                                    <ArrowRight className="w-3 h-3 text-[#ff5e5e]/60" />
+                                    <span className="text-[#ff5e5e] font-black text-xl drop-shadow-[0_0_10px_rgba(255,94,94,0.4)]">{Math.max(0, lives - 1)}</span>
+                                </div>
+                            </div>
+                            
+                            <p className="text-center text-white/50 text-[11px] mb-8 leading-relaxed px-2 font-mono tracking-wide">
+                                Quitting matches will cost one life. Proceed with mission termination?
+                            </p>
+                            
+                            <div className="flex gap-3 w-full">
+                                <button 
+                                    onClick={() => { audio.playTap(); setShowBackConfirm(false); }}
+                                    className="flex-1 py-3.5 rounded-xl border border-white/10 text-white/40 font-black text-[11px] uppercase tracking-[0.3em] hover:bg-white/5 hover:text-white/70 active:scale-95 transition-all"
+                                >
+                                    STAY
+                                </button>
+                                <button 
+                                    onClick={() => { handleBackConfirm(); }}
+                                    className="flex-1 py-3.5 rounded-xl bg-[#00ffff]/10 border border-[#00ffff]/40 text-[#00ffff] font-black text-[11px] uppercase tracking-[0.3em] hover:bg-[#00ffff]/20 hover:shadow-[0_0_20px_rgba(0,255,255,0.3)] active:scale-95 transition-all flex items-center justify-center gap-2 group overflow-hidden relative"
+                                >
+                                    <div className="absolute inset-0 bg-[#00ffff]/20 -translate-x-full group-hover:translate-x-0 transition-transform duration-500 skew-x-[-20deg]" />
+                                    <span className="relative z-10 text-center w-full">QUIT</span>
                                 </button>
                             </div>
                         </div>
