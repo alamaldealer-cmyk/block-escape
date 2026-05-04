@@ -10,7 +10,6 @@ import {
     ShoppingCart, Settings, Lock, Star, Coins, Hammer, Shuffle, Ghost, PlusCircle, ArrowLeft, Eye, ArrowRight, Heart, Video, Timer, Hand, ChevronsDown
 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
-import confetti from 'canvas-confetti';
 import { AdMob, RewardAdOptions, AdLoadInfo, RewardAdPluginEvents } from '@capacitor-community/admob';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { App as CapacitorApp } from '@capacitor/app';
@@ -466,27 +465,6 @@ const SuccessScreen = ({
     
     useEffect(() => {
         audio.playSuccessSwell();
-        
-        // Party popper confetti effect (Optimized for Android WebView)
-        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
-        const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
-
-        // Burst 1
-        confetti(Object.assign({}, defaults, { particleCount: 80, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
-        confetti(Object.assign({}, defaults, { particleCount: 80, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
-        
-        // Burst 2
-        setTimeout(() => {
-            confetti(Object.assign({}, defaults, { particleCount: 60, origin: { x: randomInRange(0.2, 0.4), y: Math.random() - 0.2 } }));
-            confetti(Object.assign({}, defaults, { particleCount: 60, origin: { x: randomInRange(0.6, 0.8), y: Math.random() - 0.2 } }));
-        }, 500);
-
-        // Burst 3
-        setTimeout(() => {
-            confetti(Object.assign({}, defaults, { particleCount: 50, origin: { x: randomInRange(0.1, 0.5), y: Math.random() - 0.2 } }));
-            confetti(Object.assign({}, defaults, { particleCount: 50, origin: { x: randomInRange(0.5, 0.9), y: Math.random() - 0.2 } }));
-        }, 1200);
-
         // Play star sounds staggered to match animations
         for (let s = 1; s <= stars; s++) {
             const delay = (0.6 + s * 0.15) * 1000;
@@ -558,7 +536,7 @@ const SuccessScreen = ({
         <motion.div 
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
-            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#02050a]/98 overflow-y-auto"
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#02050a]/98 backdrop-blur-lg overflow-y-auto"
         >
             <motion.div 
                 initial={{ scale: 0.8, opacity: 0, scaleY: 0 }}

@@ -12,7 +12,6 @@ class NeonAudio {
     bgmElement: HTMLAudioElement | null = null;
     coinElement: HTMLAudioElement | null = null;
     starElement: HTMLAudioElement | null = null;
-    winElement: HTMLAudioElement | null = null;
 
     init() {
         if (!this.initialized) {
@@ -48,10 +47,6 @@ class NeonAudio {
             if (!this.starElement) {
                 this.starElement = new Audio('/stars.mp3');
                 this.starElement.preload = 'auto';
-            }
-            if (!this.winElement) {
-                this.winElement = new Audio('/win.mp3');
-                this.winElement.preload = 'auto';
             }
         }
         if (this.ctx && this.ctx.state === 'suspended') {
@@ -244,15 +239,6 @@ class NeonAudio {
 
     playSuccessSwell() {
         this.init();
-        
-        try {
-            if (this.winElement) {
-                const winSfx = this.winElement.cloneNode() as HTMLAudioElement;
-                winSfx.volume = this.globalVolume;
-                winSfx.play().catch(() => {});
-            }
-        } catch (e) {}
-
         if (!this.ctx || !this.sfxGain) return;
         const ctx = this.ctx;
         const now = ctx.currentTime;
