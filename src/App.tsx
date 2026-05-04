@@ -467,24 +467,25 @@ const SuccessScreen = ({
     useEffect(() => {
         audio.playSuccessSwell();
         
-        // Party popper confetti effect
-        const duration = 3 * 1000;
-        const animationEnd = Date.now() + duration;
-        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 200 };
-
+        // Party popper confetti effect (Optimized for Android WebView)
+        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
         const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
-        const interval: any = setInterval(function() {
-            const timeLeft = animationEnd - Date.now();
+        // Burst 1
+        confetti(Object.assign({}, defaults, { particleCount: 80, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+        confetti(Object.assign({}, defaults, { particleCount: 80, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+        
+        // Burst 2
+        setTimeout(() => {
+            confetti(Object.assign({}, defaults, { particleCount: 60, origin: { x: randomInRange(0.2, 0.4), y: Math.random() - 0.2 } }));
+            confetti(Object.assign({}, defaults, { particleCount: 60, origin: { x: randomInRange(0.6, 0.8), y: Math.random() - 0.2 } }));
+        }, 500);
 
-            if (timeLeft <= 0) {
-                return clearInterval(interval);
-            }
-
-            const particleCount = 50 * (timeLeft / duration);
-            confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
-            confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
-        }, 250);
+        // Burst 3
+        setTimeout(() => {
+            confetti(Object.assign({}, defaults, { particleCount: 50, origin: { x: randomInRange(0.1, 0.5), y: Math.random() - 0.2 } }));
+            confetti(Object.assign({}, defaults, { particleCount: 50, origin: { x: randomInRange(0.5, 0.9), y: Math.random() - 0.2 } }));
+        }, 1200);
 
         // Play star sounds staggered to match animations
         for (let s = 1; s <= stars; s++) {
@@ -494,8 +495,6 @@ const SuccessScreen = ({
                 Haptics.impact({ style: ImpactStyle.Light });
             }, delay);
         }
-
-        return () => clearInterval(interval);
     }, [stars]);
 
     const handleClaim = () => {
@@ -559,7 +558,7 @@ const SuccessScreen = ({
         <motion.div 
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
-            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#02050a]/98 backdrop-blur-lg overflow-y-auto"
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#02050a]/98 overflow-y-auto"
         >
             <motion.div 
                 initial={{ scale: 0.8, opacity: 0, scaleY: 0 }}
