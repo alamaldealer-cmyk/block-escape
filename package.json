@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "vite build",
+    "build": "capacitor-assets generate --android && vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
+    "update-icons": "capacitor-assets generate --android",
     "postinstall": "node fix-gradle.cjs"
   },
   "dependencies": {
