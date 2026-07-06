@@ -19,7 +19,6 @@ import menuBgImg from './assets/menu_bg.png';
 import shopBgImg from './assets/menu_bg.png'; // Using menu_bg as fallback since shop_bg was deleted
 import logoImg from './assets/logo.png';
 import levelFailedImg from './levelfailed.png';
-import confetti from 'canvas-confetti';
 import { LEVELS, BlockData } from './levels';
 import { audio } from './audio';
 import { getConstraints, generateLevel } from './generator';
@@ -828,49 +827,7 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
      };
   }, [hasWon, hasFailed]);
   
-  useEffect(() => {
-     if (hasWon) {
-         // Wait for the level clear screen animation to finish/appear
-         const timeoutId = setTimeout(() => {
-             // Simple professional burst
-             const colors = ['#FFD700', '#FF8C00', '#FF0000', '#00FF00', '#00BFFF', '#8A2BE2'];
-             
-             // Initial center burst
-             confetti({
-                 particleCount: 150,
-                 spread: 80,
-                 origin: { y: 0.6 },
-                 colors: colors,
-                 zIndex: 9999,
-                 disableForReducedMotion: true
-             });
-             
-             // Side bursts after a slight delay
-             setTimeout(() => {
-                 confetti({
-                     particleCount: 80,
-                     angle: 60,
-                     spread: 55,
-                     origin: { x: 0 },
-                     colors: colors,
-                     zIndex: 9999,
-                     disableForReducedMotion: true
-                 });
-                 confetti({
-                     particleCount: 80,
-                     angle: 120,
-                     spread: 55,
-                     origin: { x: 1 },
-                     colors: colors,
-                     zIndex: 9999,
-                     disableForReducedMotion: true
-                 });
-             }, 250);
-         }, 1000); // 1 second delay to let the menu slide in
-         
-         return () => clearTimeout(timeoutId);
-     }
-  }, [hasWon]);
+
   
   useEffect(() => {
      if (hasFailed) {
