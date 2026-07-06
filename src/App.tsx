@@ -18,6 +18,8 @@ import splashImg from './assets/splash.png';
 import menuBgImg from './assets/menu_bg.png';
 import shopBgImg from './assets/menu_bg.png'; // Using menu_bg as fallback since shop_bg was deleted
 import logoImg from './assets/logo.png';
+import levelFailedImg from './levelfailed.png';
+import confetti from 'canvas-confetti';
 import { LEVELS, BlockData } from './levels';
 import { audio } from './audio';
 import { getConstraints, generateLevel } from './generator';
@@ -827,6 +829,56 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
   }, [hasWon, hasFailed]);
   
   useEffect(() => {
+     if (hasWon) {
+         // Wait for the level clear screen animation to finish/appear
+         const timeoutId = setTimeout(() => {
+             // Simple professional burst
+             const colors = ['#FFD700', '#FF8C00', '#FF0000', '#00FF00', '#00BFFF', '#8A2BE2'];
+             
+             // Initial center burst
+             confetti({
+                 particleCount: 150,
+                 spread: 80,
+                 origin: { y: 0.6 },
+                 colors: colors,
+                 zIndex: 9999,
+                 disableForReducedMotion: true
+             });
+             
+             // Side bursts after a slight delay
+             setTimeout(() => {
+                 confetti({
+                     particleCount: 80,
+                     angle: 60,
+                     spread: 55,
+                     origin: { x: 0 },
+                     colors: colors,
+                     zIndex: 9999,
+                     disableForReducedMotion: true
+                 });
+                 confetti({
+                     particleCount: 80,
+                     angle: 120,
+                     spread: 55,
+                     origin: { x: 1 },
+                     colors: colors,
+                     zIndex: 9999,
+                     disableForReducedMotion: true
+                 });
+             }, 250);
+         }, 1000); // 1 second delay to let the menu slide in
+         
+         return () => clearTimeout(timeoutId);
+     }
+  }, [hasWon]);
+  
+  useEffect(() => {
+     if (hasFailed) {
+         audio.playLevelFailed();
+     }
+  }, [hasFailed]);
+
+  useEffect(() => {
      if (hasWon || hasFailed || isExiting) return;
      const target = blocks.find(b => b.type === 'target');
      if (target && target.x === 6 - target.size) {
@@ -1493,90 +1545,48 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
                     initial={{ opacity: 0 }} 
                     animate={{ opacity: 1 }} 
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[240] flex flex-col items-center justify-center bg-[#02050a]/95 backdrop-blur-xl px-4"
+                    className="fixed inset-0 z-[240] bg-black flex items-center justify-center"
                 >
-                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(255,94,94,0.15)_0%,_transparent_70%)]" />
-                        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,_transparent_1px),_linear-gradient(90deg,_rgba(255,255,255,0.03)_1px,_transparent_1px)] bg-[size:40px_40px] opacity-20" />
-                        <motion.div 
-                            animate={{ y: ['0%', '100%'] }} 
-                            transition={{ duration: 3, repeat: Infinity, ease: 'linear' }} 
-                            className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#ff5e5e]/50 to-transparent shadow-[0_0_15px_#ff5e5e]" 
+                    <div className="relative w-full h-full max-w-[500px] mx-auto flex flex-col items-center justify-center">
+                        {/* Background Image */}
+                        <img 
+                            src={levelFailedImg} 
+                            alt="Level Failed Background" 
+                            className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+                        />
+                        
+                        {/* Life Status Display in the empty space */}
+                        <div 
+                            id="life-status-box"
+                            className="absolute w-full flex justify-center z-10"
+                            style={{ top: '48%', marginTop: '0px' }}
+                        >
+                            <div className="flex flex-col items-center gap-1" style={{ marginTop: '62px', marginLeft: '3px' }}>
+                                <span className="text-white/80 font-black tracking-widest uppercase text-[10px] drop-shadow-md">Life Lost</span>
+                                <div className="flex items-center gap-3 px-4 py-1">
+                                    <Heart className="w-6 h-6 text-[#ff5e5e] animate-pulse drop-shadow-[0_0_10px_rgba(255,94,94,0.8)]" />
+                                    <div className="flex items-center gap-2 text-3xl font-black text-white">
+                                        <span className="text-[#ff5e5e] line-through opacity-70">{lives + 1}</span>
+                                        <ArrowRight className="w-5 h-5 text-white/50" />
+                                        <span className="drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">{lives}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Invisible clickable button areas overlaid on the image */}
+                        <button 
+                            onClick={handleRestart}
+                            className="absolute w-[70%] h-[60px] top-[60%] mt-[65px] left-[15%] rounded-2xl z-20 outline-none [-webkit-tap-highlight-color:transparent]"
+                            aria-label="Retry Level"
+                        />
+                        
+                        <button 
+                            onClick={onBack}
+                            className="absolute w-[70%] h-[45px] top-[75%] mt-[37px] left-[15%] rounded-2xl z-20 outline-none [-webkit-tap-highlight-color:transparent]"
+                            aria-label="Go Back to Menu"
                         />
                     </div>
-                    
-                    <motion.div 
-                        initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                        animate={{ scale: 1, opacity: 1, y: 0 }}
-                        transition={{ type: "spring", damping: 20, stiffness: 200 }}
-                        className="relative z-10 w-full max-w-[340px] flex flex-col items-center border border-[#ff5e5e]/20 bg-black/60 backdrop-blur-md p-8 pt-10 rounded-3xl shadow-[0_0_50px_rgba(255,94,94,0.1)] overflow-hidden"
-                    >
-                        {/* Corner Accents */}
-                        <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-[#ff5e5e]/50 rounded-tl-3xl m-1" />
-                        <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-[#ff5e5e]/50 rounded-tr-3xl m-1" />
-                        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-[#ff5e5e]/50 rounded-bl-3xl m-1" />
-                        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-[#ff5e5e]/50 rounded-br-3xl m-1" />
-                        
-                        <div className="absolute -inset-40 bg-[#ff5e5e]/10 blur-[80px] rounded-full -z-10 animate-pulse pointer-events-none" />
-                        
-                        <div className="relative w-28 h-28 mb-8 flex flex-col items-center justify-center">
-                            <motion.svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-[#ff5e5e]/20" animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }}>
-                                <polygon points="50,2 98,26 98,74 50,98 2,74 2,26" fill="none" stroke="currentColor" strokeWidth="2" />
-                            </motion.svg>
-                            <motion.svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full p-2 text-[#ff5e5e]" animate={{ rotate: -360 }} transition={{ duration: 15, repeat: Infinity, ease: "linear" }}>
-                                <polygon points="50,2 98,26 98,74 50,98 2,74 2,26" fill="none" stroke="currentColor" strokeWidth="1" strokeDasharray="4 8" />
-                            </motion.svg>
-                            <div className="w-14 h-14 bg-[#ff5e5e]/10 border-2 border-[#ff5e5e]/40 flex items-center justify-center shadow-[0_0_20px_rgba(255,94,94,0.3)] rotate-45">
-                                <Ghost className="w-6 h-6 text-[#ff5e5e] -rotate-45" />
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col items-center mb-8 w-full">
-                            <motion.div 
-                                animate={{ opacity: [0.5, 1, 0.5] }}
-                                transition={{ duration: 2, repeat: Infinity }}
-                                className="text-[11px] font-black text-[#ff5e5e] tracking-[0.5em] uppercase mb-3 px-3 py-1 bg-[#ff5e5e]/10 border border-[#ff5e5e]/20 rounded-full"
-                            >
-                                LEVEL FAILED
-                            </motion.div>
-                            <h2 className="text-4xl font-black text-white mb-2 tracking-tighter text-center uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] leading-none">
-                                YOU<br /><span className="text-[#ff5e5e]">FAILED</span>
-                            </h2>
-                            <div className="h-[1px] w-24 bg-gradient-to-r from-transparent via-[#ff5e5e] to-transparent mt-3 mb-6" />
-                            
-                            <div className="flex flex-col items-center gap-1 bg-[#ff5e5e]/5 border border-[#ff5e5e]/20 py-3 px-6 rounded-lg w-full relative overflow-hidden group">
-                                <div className="absolute inset-0 bg-[#ff5e5e]/10 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300" />
-                                <div className="flex items-center gap-2 relative z-10 w-full justify-center">
-                                    <Heart className="w-3.5 h-3.5 text-[#ff5e5e]" />
-                                    <span className="text-white/60 font-black tracking-widest uppercase text-[10px]">Life Status</span>
-                                </div>
-                                <div className="flex items-center gap-3 text-sm relative z-10 font-mono mt-1 w-full justify-center">
-                                    <span className="text-[#ff5e5e] line-through font-bold text-base opacity-50">{lives + 1}</span>
-                                    <ArrowRight className="w-3 h-3 text-white/30" />
-                                    <span className="text-white font-black text-xl drop-shadow(0 0 10px rgba(255,255,255,0.5))">{lives}</span>
-                                    <span className="text-white/30 ml-1 text-[9px] tracking-[0.2em] uppercase mt-1">Left</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div className="flex flex-col gap-3 w-full">
-                            <button 
-                                onClick={handleRestart} 
-                                className="relative py-4 bg-[#ff5e5e]/10 border border-[#ff5e5e]/40 text-[#ff5e5e] hover:bg-[#ff5e5e]/20 font-black rounded-xl active:scale-95 transition-all flex items-center justify-center gap-3 group overflow-hidden shadow-[0_0_20px_rgba(255,94,94,0.2)]"
-                            >
-                                <div className="absolute inset-0 bg-[#ff5e5e]/20 -translate-x-full group-hover:translate-x-0 transition-transform duration-500 skew-x-[-20deg]" />
-                                <RotateCcw className="w-5 h-5 relative z-10 transition-transform group-hover:-rotate-180 duration-700" /> 
-                                <span className="relative z-10 text-sm tracking-[0.2em]">TRY AGAIN</span>
-                            </button>
-                            
-                            <button 
-                                onClick={onBack}
-                                className="py-3 px-4 border border-white/10 hover:border-white/30 text-white/40 hover:text-white/70 bg-white/5 font-black text-[10px] tracking-[0.3em] uppercase rounded-xl transition-all active:scale-95"
-                            >
-                                GO BACK
-                            </button>
-                        </div>
-                    </motion.div>
                 </motion.div>
             )}
         </AnimatePresence>

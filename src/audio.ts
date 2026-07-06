@@ -1,3 +1,4 @@
+import levelfailedAudioUrl from "./levelfailed.mp3";
 import bgmAudioUrl from './audio.mp3';
 
 class NeonAudio {
@@ -12,6 +13,7 @@ class NeonAudio {
     bgmElement: HTMLAudioElement | null = null;
     coinElement: HTMLAudioElement | null = null;
     starElement: HTMLAudioElement | null = null;
+    levelfailedElement: HTMLAudioElement | null = null;
 
     init() {
         if (!this.initialized) {
@@ -47,6 +49,10 @@ class NeonAudio {
             if (!this.starElement) {
                 this.starElement = new Audio('/stars.mp3');
                 this.starElement.preload = 'auto';
+            }
+            if (!this.levelfailedElement) {
+                this.levelfailedElement = new Audio(levelfailedAudioUrl);
+                this.levelfailedElement.preload = "auto";
             }
         }
         if (this.ctx && this.ctx.state === 'suspended') {
@@ -193,8 +199,20 @@ class NeonAudio {
         osc.stop(now + 0.1);
     }
 
+
+    playLevelFailed() {
+        this.init();
+        try {
+            if (this.levelfailedElement) {
+                const failSfx = this.levelfailedElement.cloneNode() as HTMLAudioElement;
+                failSfx.volume = this.globalVolume;
+                failSfx.play().catch(() => {});
+            }
+        } catch (e) {}
+    }
     playWin() {
         this.init();
+        
         if (!this.ctx || !this.sfxGain) return;
         const ctx = this.ctx;
         const now = ctx.currentTime;
