@@ -1,0 +1,132 @@
+const fs = require('fs');
+let code = fs.readFileSync('src/generator.ts', 'utf8');
+
+const replacement = `export function generateScrewLevel(levelNum: number, gridSize: number = 8): { blocks: BlockData[], gates: ScrewGate[], maxMoves: number, minMoves: number } {
+    let seed = levelNum * 77773 + 54321;
+    const random = () => {
+        seed = (seed * 9301 + 49297) % 233280;
+        return seed / 233280;
+    };
+
+    const numBlocks = Math.min(12, 6 + Math.floor(levelNum / 2));
+    const blocks: BlockData[] = [];
+    const gates: ScrewGate[] = [];
+    const colors: ('red' | 'orange' | 'teal' | 'blue' | 'green' | 'purple')[] = ['red', 'orange', 'teal', 'blue', 'green', 'purple'];
+    
+    const hasOverlap = (b1: BlockData, b2: BlockData) => {
+        const b1MinX = b1.x, b1MaxX = b1.dir === 'H' ? b1.x + b1.size - 1 : b1.x;
+        const b1MinY = b1.y, b1MaxY = b1.dir === 'V' ? b1.y + b1.size - 1 : b1.y;
+        const b2MinX = b2.x, b2MaxX = b2.dir === 'H' ? b2.x + b2.size - 1 : b2.x;
+        const b2MinY = b2.y, b2MaxY = b2.dir === 'V' ? b2.y + b2.size - 1 : b2.y;
+        return !(b2MaxX < b1MinX || b2MinX > b1MaxX || b2MaxY < b1MinY || b2MinY > b1MaxY);
+    };
+
+    const getScrewConstraints = (block: BlockData, allBlocks: BlockData[]) => {
+        let minGrid = 0;
+        let maxGrid = gridSize - block.size;
+        for (const other of allBlocks) {
+            if (other.id === block.id) continue;
+            if (block.dir === 'H' && other.dir === 'V') {
+                if (other.y <= block.y && other.y + other.size - 1 >= block.y) {
+                    if (other.x < block.x) minGrid = Math.max(minGrid, other.x + 1);
+                    else maxGrid = Math.min(maxGrid, other.x - block.size);
+                }
+            } else if (block.dir === 'H' && other.dir === 'H') {
+                if (other.y === block.y) {
+                    if (other.x < block.x) minGrid = Math.max(minGrid, other.x + other.size);
+                    else maxGrid = Math.min(maxGrid, other.x - block.size);
+                }
+            } else if (block.dir === 'V' && other.dir === 'H') {
+                if (other.x <= block.x && other.x + other.size - 1 >= block.x) {
+                    if (other.y < block.y) minGrid = Math.max(minGrid, other.y + 1);
+                    else maxGrid = Math.min(maxGrid, other.y - block.size);
+                }
+            } else if (block.dir === 'V' && other.dir === 'V') {
+                if (other.x === block.x) {
+                    if (other.y < block.y) minGrid = Math.max(minGrid, other.y + other.size);
+                    else maxGrid = Math.min(maxGrid, other.y - block.size);
+                }
+            }
+        }
+        return { minGrid, maxGrid };
+    };
+
+    let colorIdx = 0;
+    
+    for (let i = 0; i < numBlocks; i++) {
+        for (let attempt = 0; attempt < 50; attempt++) {
+            // Optional: slight scramble existing blocks to open space
+            if (blocks.length > 0) {
+                const b = blocks[Math.floor(random() * blocks.length)];
+                const { minGrid, maxGrid } = getScrewConstraints(b, blocks);
+                if (maxGrid >= minGrid) {
+                    const newPos = minGrid + Math.floor(random() * (maxGrid - minGrid + 1));
+                    if (b.dir === 'H') b.x = newPos;
+                    else b.y = newPos;
+                }
+            }
+
+            const sizeVal = random();
+            const size = sizeVal < 0.35 ? 2 : sizeVal < 0.75 ? 3 : 4;
+            const sides: Array<'left'|'right'|'top'|'bottom'> = ['left', 'right', 'top', 'bottom'];
+            const side = sides[Math.floor(random() * 4)];
+            const index = Math.floor(random() * gridSize);
+            
+            // Limit 1 gate per edge index to prevent overlapping crushers
+            if (gates.some(g => g.side === side && g.index === index)) continue;
+            
+            let x = 0, y = 0;
+            let dir: 'H' | 'V' = 'H';
+            if (side === 'left') { x = 0; y = index; dir = 'H'; }
+            else if (side === 'right') { x = gridSize - size; y = index; dir = 'H'; }
+            else if (side === 'top') { x = index; y = 0; dir = 'V'; }
+            else if (side === 'bottom') { x = index; y = gridSize - size; dir = 'V'; }
+            
+            const newBlock: BlockData = { 
+                id: 200 + i, 
+                x, y, size, dir, 
+                type: 'color', 
+                color: colors[colorIdx % colors.length] 
+            };
+            
+            let overlap = false;
+            for (const b of blocks) {
+                if (hasOverlap(newBlock, b)) { overlap = true; break; }
+            }
+            
+            if (!overlap) {
+                blocks.push(newBlock);
+                gates.push({ side, index, color: newBlock.color! });
+                colorIdx++;
+                break;
+            }
+        }
+    }
+    
+    // Scramble the fully constructed solvable board
+    for (let i = 0; i < 100 + levelNum * 5; i++) {
+        const b = blocks[Math.floor(random() * blocks.length)];
+        const { minGrid, maxGrid } = getScrewConstraints(b, blocks);
+        if (maxGrid >= minGrid) {
+            const newPos = minGrid + Math.floor(random() * (maxGrid - minGrid + 1));
+            if (b.dir === 'H') b.x = newPos;
+            else b.y = newPos;
+        }
+    }
+    
+    if (blocks.length === 0) {
+        blocks.push({ id: 200, x: 2, y: 2, size: 2, dir: 'H', type: 'color', color: 'red' });
+        gates.push({ side: 'left', index: 2, color: 'red' });
+    }
+
+    const maxMoves = 30 + blocks.length * 6 + Math.floor(levelNum * 2);
+    return {
+        blocks,
+        gates,
+        maxMoves,
+        minMoves: Math.ceil(maxMoves / 2.5)
+    };
+}`;
+
+code = code.replace(/export function generateScrewLevel[\s\S]+$/, replacement);
+fs.writeFileSync('src/generator.ts', code);

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "393252449134",
+    "project_id": "escape-block-be256",
+    "storage_bucket": "escape-block-be256.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:393252449134:android:d13f056588d3c8f428af7f",
+        "android_client_info": {
+          "package_name": "com.escapeblock.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyClRFbhcgwIKEcaeOFOzM9VbqeFFp0nWDA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,5 +1,6 @@
 import levelfailedAudioUrl from "./levelfailed.mp3";
 import bgmAudioUrl from './audio.mp3';
+import brickscrushAudioUrl from "./brickscrush.mp3";
 
 class NeonAudio {
     ctx: AudioContext | null = null;
@@ -14,6 +15,7 @@ class NeonAudio {
     coinElement: HTMLAudioElement | null = null;
     starElement: HTMLAudioElement | null = null;
     levelfailedElement: HTMLAudioElement | null = null;
+    brickscrushElement: HTMLAudioElement | null = null;
 
     init() {
         if (!this.initialized) {
@@ -53,6 +55,10 @@ class NeonAudio {
             if (!this.levelfailedElement) {
                 this.levelfailedElement = new Audio(levelfailedAudioUrl);
                 this.levelfailedElement.preload = "auto";
+            }
+            if (!this.brickscrushElement) {
+                this.brickscrushElement = new Audio(brickscrushAudioUrl);
+                this.brickscrushElement.preload = "auto";
             }
         }
         if (this.ctx && this.ctx.state === 'suspended') {
@@ -419,6 +425,108 @@ class NeonAudio {
         bg.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
         b.start(now);
         b.stop(now + 0.15);
+    }
+
+    playCrusher() {
+        this.init();
+        if (this.brickscrushElement) {
+            this.brickscrushElement.currentTime = 0;
+            this.brickscrushElement.volume = this.globalVolume;
+            this.brickscrushElement.play().catch(e => console.log('brickscrush play prevented:', e));
+        }
+        if (!this.ctx || !this.sfxGain) return;
+        const ctx = this.ctx;
+        const now = ctx.currentTime;
+        
+        // 1. Initial mechanical metal clack
+        const clackOsc = ctx.createOscillator();
+        const clackGain = ctx.createGain();
+        clackOsc.type = 'triangle';
+        clackOsc.frequency.setValueAtTime(600, now);
+        clackOsc.frequency.linearRampToValueAtTime(100, now + 0.08);
+        clackGain.gain.setValueAtTime(0.4, now);
+        clackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        clackOsc.connect(clackGain);
+        clackGain.connect(this.sfxGain);
+        clackOsc.start(now);
+        clackOsc.stop(now + 0.08);
+
+        // 2. Heavy hydraulic crunch (sub-bass grinding thump)
+        const lowOsc = ctx.createOscillator();
+        const lowGain = ctx.createGain();
+        lowOsc.type = 'sawtooth';
+        lowOsc.frequency.setValueAtTime(90, now);
+        lowOsc.frequency.linearRampToValueAtTime(25, now + 0.35);
+        
+        const lowFilter = ctx.createBiquadFilter();
+        lowFilter.type = 'lowpass';
+        lowFilter.frequency.setValueAtTime(350, now);
+        lowFilter.frequency.exponentialRampToValueAtTime(50, now + 0.35);
+        
+        lowGain.gain.setValueAtTime(0.55, now);
+        lowGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        
+        lowOsc.connect(lowFilter);
+        lowFilter.connect(lowGain);
+        lowGain.connect(this.sfxGain);
+        lowOsc.start(now);
+        lowOsc.stop(now + 0.35);
+
+        // 3. Electric spark / mechanical grind screech (middle range crunch texture)
+        const grindOsc = ctx.createOscillator();
+        const grindGain = ctx.createGain();
+        grindOsc.type = 'sawtooth';
+        grindOsc.frequency.setValueAtTime(450, now);
+        grindOsc.frequency.linearRampToValueAtTime(150, now + 0.28);
+        
+        const grindFilter = ctx.createBiquadFilter();
+        grindFilter.type = 'bandpass';
+        grindFilter.frequency.setValueAtTime(750, now);
+        grindFilter.frequency.exponentialRampToValueAtTime(180, now + 0.28);
+        grindFilter.Q.setValueAtTime(4, now);
+        
+        grindGain.gain.setValueAtTime(0.35, now);
+        grindGain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+        
+        grindOsc.connect(grindFilter);
+        grindFilter.connect(grindGain);
+        grindGain.connect(this.sfxGain);
+        grindOsc.start(now);
+        grindOsc.stop(now + 0.28);
+
+        // 4. White noise-like shattering / air release hiss (Pshhh)
+        const noiseOsc = ctx.createOscillator();
+        const noiseGain = ctx.createGain();
+        noiseOsc.type = 'square';
+        noiseOsc.frequency.setValueAtTime(8000, now);
+        noiseOsc.frequency.exponentialRampToValueAtTime(600, now + 0.42);
+        
+        const noiseFilter = ctx.createBiquadFilter();
+        noiseFilter.type = 'highpass';
+        noiseFilter.frequency.setValueAtTime(1500, now);
+        noiseFilter.frequency.exponentialRampToValueAtTime(300, now + 0.42);
+        
+        noiseGain.gain.setValueAtTime(0.18, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+        
+        noiseOsc.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(this.sfxGain);
+        noiseOsc.start(now);
+        noiseOsc.stop(now + 0.42);
+
+        // 5. Short metal debris resonance
+        const debrisOsc = ctx.createOscillator();
+        const debrisGain = ctx.createGain();
+        debrisOsc.type = 'sine';
+        debrisOsc.frequency.setValueAtTime(1600, now + 0.08);
+        debrisGain.gain.setValueAtTime(0, now);
+        debrisGain.gain.setValueAtTime(0.1, now + 0.08);
+        debrisGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+        debrisOsc.connect(debrisGain);
+        debrisGain.connect(this.sfxGain);
+        debrisOsc.start(now);
+        debrisOsc.stop(now + 0.22);
     }
 }
 

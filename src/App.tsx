@@ -7,9 +7,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, useMotionValue, animate, AnimatePresence } from 'motion/react';
 import { 
     Play, RotateCcw, Undo2, CheckCircle2, ChevronRight, ChevronsRight, 
-    ShoppingCart, Settings, Lock, Star, Coins, Hammer, Shuffle, Ghost, PlusCircle, ArrowLeft, Eye, ArrowRight, Heart, Video, Timer, Hand, ChevronsDown
+    ShoppingCart, Settings, Lock, Star, Coins, Hammer, Shuffle, Ghost, PlusCircle, ArrowLeft, Eye, ArrowRight, Heart, Video, Timer, Hand, ChevronsDown,
+    MoveHorizontal, MoveVertical, Move, RotateCw
 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
+import { FirebaseAnalytics } from '@capacitor-community/firebase-analytics';
 import { AdMob, RewardAdOptions, AdLoadInfo, RewardAdPluginEvents } from '@capacitor-community/admob';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { App as CapacitorApp } from '@capacitor/app';
@@ -19,9 +21,9 @@ import menuBgImg from './assets/menu_bg.png';
 import shopBgImg from './assets/menu_bg.png'; // Using menu_bg as fallback since shop_bg was deleted
 import logoImg from './assets/logo.png';
 import levelFailedImg from './levelfailed.png';
-import { LEVELS, BlockData } from './levels';
+import { LEVELS, BlockData, SCREW_LEVELS, ScrewGate } from './levels';
 import { audio } from './audio';
-import { getConstraints, generateLevel } from './generator';
+import { getConstraints, generateLevel, generateScrewLevel, getScrewConstraints } from './generator';
 
 // Hook to get responsive board size
 function useBoardSize(ref: React.RefObject<HTMLDivElement | null>) {
@@ -41,7 +43,64 @@ function useBoardSize(ref: React.RefObject<HTMLDivElement | null>) {
   return size;
 }
 
-const getTheme = (block: BlockData) => {
+const getTheme = (block: BlockData, gameMode: "classic" | "screw") => {
+    if (block.color) {
+        if (block.color === 'red') {
+            return {
+                border: 'border-[#ff5e5e]',
+                bg: 'bg-[#1a0505]',
+                shadow: 'shadow-[0_0_15px_rgba(255,94,94,0.4)]',
+                element: 'bg-[#ff5e5e] shadow-[0_0_10px_#ff5e5e]',
+                glowInset: 'shadow-[inset_0_0_20px_rgba(255,94,94,0.15)]',
+            };
+        }
+        if (block.color === 'orange') {
+            return {
+                border: 'border-[#ffaa00]',
+                bg: 'bg-[#1a1000]',
+                shadow: 'shadow-[0_0_15px_rgba(255,170,0,0.4)]',
+                element: 'bg-[#ffaa00] shadow-[0_0_10px_#ffaa00]',
+                glowInset: 'shadow-[inset_0_0_20px_rgba(255,170,0,0.15)]',
+            };
+        }
+        if (block.color === 'teal') {
+            return {
+                border: 'border-[#00ffff]',
+                bg: 'bg-[#001a1a]',
+                shadow: 'shadow-[0_0_15px_rgba(0,255,255,0.4)]',
+                element: 'bg-[#00ffff] shadow-[0_0_10px_#00ffff]',
+                glowInset: 'shadow-[inset_0_0_20px_rgba(0,255,255,0.15)]',
+            };
+        }
+        if (block.color === 'blue') {
+            return {
+                border: 'border-[#5e8eff]',
+                bg: 'bg-[#050b1a]',
+                shadow: 'shadow-[0_0_15px_rgba(94,142,255,0.4)]',
+                element: 'bg-[#5e8eff] shadow-[0_0_10px_#5e8eff]',
+                glowInset: 'shadow-[inset_0_0_20px_rgba(94,142,255,0.15)]',
+            };
+        }
+        if (block.color === 'green') {
+            return {
+                border: 'border-[#00ff88]',
+                bg: 'bg-[#001a0d]',
+                shadow: 'shadow-[0_0_15px_rgba(0,255,136,0.4)]',
+                element: 'bg-[#00ff88] shadow-[0_0_10px_#00ff88]',
+                glowInset: 'shadow-[inset_0_0_20px_rgba(0,255,136,0.15)]',
+            };
+        }
+        if (block.color === 'purple') {
+            return {
+               border: 'border-[#d400ff]',
+               bg: 'bg-[#15001a]',
+               shadow: 'shadow-[0_0_15px_rgba(212,0,255,0.4)]',
+               element: 'bg-[#d400ff] shadow-[0_0_10px_#d400ff]',
+               glowInset: 'shadow-[inset_0_0_20px_rgba(212,0,255,0.15)]',
+            };
+        }
+    }
+
     if (block.type === 'target') {
         return {
             border: 'border-[#ff5e5e]',
@@ -49,6 +108,17 @@ const getTheme = (block: BlockData) => {
             shadow: 'shadow-[0_0_15px_rgba(255,94,94,0.4)]',
             element: 'bg-[#ff5e5e] shadow-[0_0_10px_#ff5e5e]',
             glowInset: 'shadow-[inset_0_0_20px_rgba(255,94,94,0.15)]',
+        };
+    }
+    
+    if (block.type === 'obstacle' && gameMode === 'screw') {
+        return {
+            border: 'border-[#475569]',
+            bg: 'bg-[#0f172a]',
+            shadow: 'shadow-[0_0_15px_rgba(71,85,105,0.3)]',
+            element: 'bg-[#64748b] shadow-[0_0_10px_rgba(100,116,139,0.4)]',
+            glowInset: 'shadow-[inset_0_0_20px_rgba(71,85,105,0.15)]',
+            isObstacle: true
         };
     }
     
@@ -93,19 +163,301 @@ const getTheme = (block: BlockData) => {
     return themes[(block.id - 1) % themes.length];
 }
 
-const BlockView = ({ block, blocks, cellSize, onMove, hasWon, isHammerActive, onHammerUse, isGhostActive }: { key?: React.Key, block: BlockData, blocks: BlockData[], cellSize: number, onMove: (id: number, newGrid: number) => void, hasWon: boolean, isHammerActive: boolean, onHammerUse: (id: number) => void, isGhostActive?: boolean }) => {
-    const { minGrid, maxGrid } = getConstraints(block, blocks, isGhostActive);
-    const x = useMotionValue(block.dir === 'H' ? block.x * cellSize : 0);
-    const y = useMotionValue(block.dir === 'V' ? block.y * cellSize : 0);
+const BlockView = ({ 
+    block, 
+    blocks, 
+    cellSize, 
+    onMove, 
+    onRotate,
+    hasWon, 
+    isHammerActive, 
+    onHammerUse, 
+    isGhostActive,
+    gameMode = 'classic',
+    gates = []
+}: { 
+    key?: React.Key, 
+    block: BlockData, 
+    blocks: BlockData[], 
+    cellSize: number, 
+    onMove: (id: number, newX: number, newY: number) => void, 
+    onRotate?: (id: number) => void,
+    hasWon: boolean, 
+    isHammerActive: boolean, 
+    onHammerUse: (id: number) => void, 
+    isGhostActive?: boolean,
+    gameMode?: 'classic' | 'screw',
+    gates?: ScrewGate[]
+}) => {
+    const gridSize = gameMode === 'screw' ? 8 : 6;
+    const isScrew = gameMode === 'screw';
+    const lastClickTime = useRef(0);
+    let constraints = { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+    if (isScrew) {
+        const res = getScrewConstraints(block, blocks, gridSize, gates || [], false);
+        constraints = {
+            minX: res.minX,
+            maxX: res.maxX,
+            minY: res.minY,
+            maxY: res.maxY
+        };
+    } else {
+        let { minGrid, maxGrid } = getConstraints(block, blocks, isGhostActive, gridSize);
+        constraints = {
+            minX: block.dir === 'H' ? minGrid : block.x,
+            maxX: block.dir === 'H' ? maxGrid : block.x,
+            minY: block.dir === 'V' ? minGrid : block.y,
+            maxY: block.dir === 'V' ? maxGrid : block.y
+        };
+    }
+
+    const x = useMotionValue(isScrew ? block.x * cellSize : (block.dir === 'H' ? block.x * cellSize : 0));
+    const y = useMotionValue(isScrew ? block.y * cellSize : (block.dir === 'V' ? block.y * cellSize : 0));
+
+    const [isEscapingAnimating, setIsEscapingAnimating] = useState(false);
+    
+    // Snaps instantly when not escaping or dragging
+    useEffect(() => {
+        if (!isEscapingAnimating) {
+            if (isScrew) {
+                animate(x, block.x * cellSize, { type: 'spring', stiffness: 300, damping: 25 });
+                animate(y, block.y * cellSize, { type: 'spring', stiffness: 300, damping: 25 });
+            } else {
+                if (block.dir === 'H') {
+                    animate(x, block.x * cellSize, { type: 'spring', stiffness: 300, damping: 25 });
+                    animate(y, 0, { type: 'spring', stiffness: 300, damping: 25 });
+                } else {
+                    animate(y, block.y * cellSize, { type: 'spring', stiffness: 300, damping: 25 });
+                    animate(x, 0, { type: 'spring', stiffness: 300, damping: 25 });
+                }
+            }
+        }
+    }, [block.x, block.y, cellSize, isEscapingAnimating, x, y, block.dir, isScrew]);
+
+    const [crushProgress, setCrushProgress] = useState(0);
+    const [jitterX, setJitterX] = useState(0);
+    const [jitterY, setJitterY] = useState(0);
 
     useEffect(() => {
-        if (block.dir === 'H') {
-            const targetX = (hasWon && block.type === 'target') ? (cellSize * 7.5) : block.x * cellSize;
-            const transition = (hasWon && block.type === 'target') ? { duration: 1.2, ease: "easeIn" } : { type: 'spring', bounce: 0, duration: 0.2 };
+        if (isEscapingAnimating) return;
+        if (isScrew) {
+            const isEscapedX = hasWon && (block.x < 0 || block.x > gridSize - (block.dir === 'H' ? block.size : 1));
+            const isEscapedY = hasWon && (block.y < 0 || block.y > gridSize - (block.dir === 'V' ? block.size : 1));
+            
+            const targetX = isEscapedX ? (block.x < 0 ? -cellSize * block.size : cellSize * (gridSize + 1.5)) : block.x * cellSize;
+            const targetY = isEscapedY ? (block.y < 0 ? -cellSize * block.size : cellSize * (gridSize + 1.5)) : block.y * cellSize;
+            
+            const transition = { type: 'spring', bounce: 0, duration: 0.2 };
             animate(x, targetX as any, transition as any);
+            animate(y, targetY as any, transition as any);
+        } else {
+            if (block.dir === 'H') {
+                const isEscaped = hasWon && (block.x < 0 || block.x > gridSize - block.size);
+                const targetX = (hasWon && block.type === 'target') ? (cellSize * (gridSize + 1.5)) : isEscaped ? (block.x < 0 ? -cellSize * block.size : cellSize * (gridSize + 1.5)) : block.x * cellSize;
+                const transition = (hasWon && (block.type === 'target' || isEscaped)) ? { duration: 1.2, ease: "easeIn" } : { type: 'spring', bounce: 0, duration: 0.2 };
+                animate(x, targetX as any, transition as any);
+                animate(y, 0, { duration: 0.1 });
+            } else {
+                const isEscaped = hasWon && (block.y < 0 || block.y > gridSize - block.size);
+                const targetY = isEscaped ? (block.y < 0 ? -cellSize * block.size : cellSize * (gridSize + 1.5)) : block.y * cellSize;
+                const transition = (hasWon && isEscaped) ? { duration: 1.2, ease: "easeIn" } : { type: 'spring', bounce: 0, duration: 0.2 };
+                animate(y, targetY as any, transition as any);
+                animate(x, 0, { duration: 0.1 });
+            }
         }
-        if (block.dir === 'V') animate(y, (block.y * cellSize) as any, { type: 'spring', bounce: 0, duration: 0.2 } as any);
-    }, [block.x, block.y, cellSize, block.dir, x, y, hasWon, block.type]);
+    }, [block.x, block.y, cellSize, block.dir, x, y, hasWon, block.type, gridSize, isEscapingAnimating, isScrew]);
+
+    useEffect(() => {
+        const updateProgress = () => {
+            if (gameMode !== 'screw') {
+                setCrushProgress(0);
+                return;
+            }
+            const totalDistanceX = (block.dir === 'H' ? block.size : 1) * cellSize;
+            const totalDistanceY = (block.dir === 'V' ? block.size : 1) * cellSize;
+            if (totalDistanceX <= 0 || totalDistanceY <= 0) return;
+
+            let progressX = 0;
+            let progressY = 0;
+            
+            const currX = x.get();
+            const currY = y.get();
+
+            if (currX < 0) {
+                progressX = Math.min(1, Math.max(0, -currX / totalDistanceX));
+            } else {
+                const maxBoardX = (gridSize - (block.dir === 'H' ? block.size : 1)) * cellSize;
+                if (currX > maxBoardX) {
+                    progressX = Math.min(1, Math.max(0, (currX - maxBoardX) / totalDistanceX));
+                }
+            }
+
+            if (currY < 0) {
+                progressY = Math.min(1, Math.max(0, -currY / totalDistanceY));
+            } else {
+                const maxBoardY = (gridSize - (block.dir === 'V' ? block.size : 1)) * cellSize;
+                if (currY > maxBoardY) {
+                    progressY = Math.min(1, Math.max(0, (currY - maxBoardY) / totalDistanceY));
+                }
+            }
+
+            setCrushProgress(Math.max(progressX, progressY));
+        };
+
+        const unsubX = x.on("change", updateProgress);
+        const unsubY = y.on("change", updateProgress);
+        updateProgress();
+
+        return () => { unsubX(); unsubY(); };
+    }, [block.dir, block.size, cellSize, gridSize, gameMode, x, y]);
+
+    useEffect(() => {
+        if (crushProgress > 0) {
+            const interval = setInterval(() => {
+                const intensity = crushProgress * 6; // up to 6px of jitter
+                setJitterX((Math.random() - 0.5) * intensity);
+                setJitterY((Math.random() - 0.5) * intensity);
+            }, 25);
+            return () => clearInterval(interval);
+        } else {
+            setJitterX(0);
+            setJitterY(0);
+        }
+    }, [crushProgress]);
+
+    let crushSide: 'left' | 'right' | 'top' | 'bottom' | null = null;
+    if (gameMode === 'screw' && crushProgress > 0) {
+        if (block.dir === 'H') {
+            if (x.get() < 0) crushSide = 'left';
+            else crushSide = 'right';
+        } else {
+            if (y.get() < 0) crushSide = 'top';
+            else crushSide = 'bottom';
+        }
+    }
+
+    const renderCracks = () => {
+        if (!crushSide) return null;
+        
+        const basePaths = [
+            "M 0 50 L 15 35 L 35 45 L 60 30 L 85 40 L 100 35",
+            "M 0 50 L 20 65 L 45 55 L 70 75 L 90 60 L 100 65",
+            "M 0 20 L 25 30 L 50 20 L 75 35 L 100 25",
+            "M 0 80 L 30 70 L 55 85 L 80 75 L 100 80",
+            "M 10 15 Q 25 50 10 85",
+            "M 30 10 Q 50 50 30 90",
+            "M 55 5 Q 75 50 55 95",
+            "M 80 5 Q 95 50 80 95",
+            "M 15 35 L 10 15",
+            "M 20 65 L 30 90",
+            "M 35 45 L 30 10",
+            "M 45 55 L 55 95",
+            "M 60 30 L 55 5",
+            "M 70 75 L 80 95",
+            "M 85 40 L 80 5"
+        ];
+        
+        let transformStr = "";
+        if (crushSide === 'right') {
+            transformStr = "scaleX(-1)";
+        } else if (crushSide === 'top') {
+            transformStr = "rotate(90deg) scaleY(-1)";
+        } else if (crushSide === 'bottom') {
+            transformStr = "rotate(-90deg)";
+        }
+        
+        return (
+            <div 
+                className="absolute inset-0 pointer-events-none z-30 overflow-hidden"
+                style={{ 
+                    transform: transformStr,
+                    transformOrigin: 'center center',
+                    opacity: Math.min(1, crushProgress * 1.3)
+                }}
+            >
+                <svg 
+                    viewBox="0 0 100 100" 
+                    preserveAspectRatio="none" 
+                    className="w-full h-full"
+                >
+                    {basePaths.map((path, idx) => (
+                        <motion.path
+                            key={idx}
+                            d={path}
+                            fill="transparent"
+                            stroke="#ffffff"
+                            strokeWidth={idx < 4 ? "1.8" : "1"}
+                            strokeOpacity={0.85}
+                            style={{
+                                filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.75))',
+                            }}
+                            initial={{ pathLength: 0 }}
+                            animate={{ pathLength: Math.min(1, crushProgress * 1.5) }}
+                            transition={{ duration: 0.1, ease: "easeOut" }}
+                        />
+                    ))}
+                </svg>
+            </div>
+        );
+    };
+
+    const renderShards = () => {
+        if (!crushSide) return null;
+        
+        const shardCount = 8;
+        
+        return (
+            <div className="absolute inset-0 pointer-events-none z-40 overflow-visible">
+                {Array.from({ length: shardCount }).map((_, idx) => {
+                    let startX = 0;
+                    let startY = 50;
+                    let angle = (idx / (shardCount - 1)) * 120 - 60;
+                    
+                    if (crushSide === 'left') {
+                        startX = 5;
+                        startY = 20 + idx * 10;
+                    } else if (crushSide === 'right') {
+                        startX = 95;
+                        startY = 20 + idx * 10;
+                        angle += 180;
+                    } else if (crushSide === 'top') {
+                        startX = 20 + idx * 10;
+                        startY = 5;
+                        angle += 90;
+                    } else if (crushSide === 'bottom') {
+                        startX = 20 + idx * 10;
+                        startY = 95;
+                        angle -= 90;
+                    }
+                    
+                    const rad = (angle * Math.PI) / 180;
+                    const distance = crushProgress * 65; 
+                    const currentX = startX + Math.cos(rad) * distance;
+                    const currentY = startY + Math.sin(rad) * distance;
+                    const rot = crushProgress * 420 * (idx % 2 === 0 ? 1 : -1);
+                    const scale = 1 - crushProgress * 0.4;
+                    
+                    return (
+                        <div
+                            key={`shard-${idx}`}
+                            className="absolute w-3 h-3 bg-white/90"
+                            style={{
+                                left: `${currentX}%`,
+                                top: `${currentY}%`,
+                                transform: `translate(-50%, -50%) rotate(${rot}deg) scale(${scale})`,
+                                clipPath: idx % 2 === 0 
+                                    ? 'polygon(50% 0%, 0% 100%, 100% 100%)' 
+                                    : 'polygon(0% 0%, 100% 50%, 0% 100%)',
+                                opacity: crushProgress > 0.08 ? (1 - crushProgress) * 0.95 : 0,
+                                boxShadow: '0 0 10px rgba(255,255,255,0.9)',
+                                filter: 'blur(0.2px)'
+                            }}
+                        />
+                    );
+                })}
+            </div>
+        );
+    };
 
     const isGhostMode = isGhostActive && block.type === 'target';
 
@@ -115,27 +467,41 @@ const BlockView = ({ block, blocks, cellSize, onMove, hasWon, isHammerActive, on
         filter: isGhostMode ? 'hue-rotate(90deg) brightness(1.2) drop-shadow(0_0_15px_#00ffff)' : 'none',
     };
     
-    if (block.dir === 'H') {
-        style.width = block.size * cellSize;
-        style.height = cellSize;
+    if (isScrew) {
+        style.width = block.dir === 'H' ? block.size * cellSize : cellSize;
+        style.height = block.dir === 'V' ? block.size * cellSize : cellSize;
         style.left = 0;
-        style.top = block.y * cellSize;
-        style.x = x as any;
-    } else {
-        style.width = cellSize;
-        style.height = block.size * cellSize;
-        style.left = block.x * cellSize;
         style.top = 0;
+        style.x = x as any;
         style.y = y as any;
+    } else {
+        if (block.dir === 'H') {
+            style.width = block.size * cellSize;
+            style.height = cellSize;
+            style.left = 0;
+            style.top = block.y * cellSize;
+            style.x = x as any;
+        } else {
+            style.width = cellSize;
+            style.height = block.size * cellSize;
+            style.left = block.x * cellSize;
+            style.top = 0;
+            style.y = y as any;
+        }
     }
 
-    const theme = getTheme(block);
+    const theme = getTheme(block, gameMode);
 
     return (
         <motion.div
             layoutId={block.id.toString()}
-            className="will-change-transform p-[3px] cursor-grab active:cursor-grabbing z-10 box-border"
-            exit={{ 
+            className="will-change-transform p-[3px] cursor-grab active:cursor-grabbing z-10 box-border overflow-visible"
+            exit={isEscapingAnimating ? {
+                opacity: 0,
+                scale: 0.9,
+                filter: "brightness(2.2) blur(5px)",
+                transition: { duration: 0.1 }
+            } : { 
                 scale: 1.5,
                 opacity: 0,
                 rotate: Math.random() > 0.5 ? 45 : -45,
@@ -143,27 +509,134 @@ const BlockView = ({ block, blocks, cellSize, onMove, hasWon, isHammerActive, on
                 transition: { duration: 0.4 }
             }}
             style={style}
-            drag={block.dir === 'H' ? 'x' : 'y'}
-            dragConstraints={
-                block.dir === 'H' 
-                ? { left: minGrid * cellSize, right: maxGrid * cellSize }
-                : { top: minGrid * cellSize, bottom: maxGrid * cellSize }
-            }
+            drag={isScrew ? true : (block.dir === 'H' ? 'x' : 'y')}
+            dragDirectionLock={isScrew}
+            dragConstraints={{
+                left: isScrew ? constraints.minX * cellSize : (block.dir === 'H' ? constraints.minX * cellSize : 0),
+                right: isScrew ? constraints.maxX * cellSize : (block.dir === 'H' ? constraints.maxX * cellSize : 0),
+                top: isScrew ? constraints.minY * cellSize : (block.dir === 'V' ? constraints.minY * cellSize : 0),
+                bottom: isScrew ? constraints.maxY * cellSize : (block.dir === 'V' ? constraints.maxY * cellSize : 0)
+            }}
             dragMomentum={false}
             dragElastic={0}
             onDragStart={() => audio.playTap()}
             onDragEnd={(e, info) => {
-                const val = block.dir === 'H' ? x.get() : y.get();
-                let newGrid = Math.round(val / cellSize);
-                newGrid = Math.max(minGrid, Math.min(newGrid, maxGrid));
-                
-                if (newGrid !== (block.dir === 'H' ? block.x : block.y)) {
-                    audio.playSlide();
-                    onMove(block.id, newGrid);
+                if (isScrew) {
+                    const valX = x.get();
+                    const valY = y.get();
+                    const diffX = Math.abs(valX - block.x * cellSize);
+                    const diffY = Math.abs(valY - block.y * cellSize);
+
+                    if (diffX > diffY && diffX > 8) {
+                        // Horizontal movement
+                        let escaped = false;
+                        let escapeTargetX = block.x;
+                        const blockW = block.dir === 'H' ? block.size : 1;
+
+                        if (block.dir === 'H' && constraints.minX < 0 && (valX / cellSize) < 0.35) {
+                            escaped = true;
+                            escapeTargetX = constraints.minX;
+                        } else if (block.dir === 'H' && constraints.maxX === gridSize && (valX / cellSize) > (gridSize - blockW - 0.35)) {
+                            escaped = true;
+                            escapeTargetX = constraints.maxX;
+                        }
+
+                        if (escaped) {
+                            setIsEscapingAnimating(true);
+                            audio.playSlide();
+                            const targetValX = escapeTargetX * cellSize;
+                            animate(y, block.y * cellSize, { duration: 0.1 });
+                            animate(x, targetValX, { 
+                                type: 'tween', 
+                                ease: 'easeIn', 
+                                duration: 0.35, 
+                                onComplete: () => onMove(block.id, escapeTargetX, block.y) 
+                            });
+                        } else {
+                            let newGridX = Math.round(valX / cellSize);
+                            newGridX = Math.max(constraints.minX, Math.min(newGridX, constraints.maxX));
+
+                            if (newGridX !== block.x) {
+                                audio.playSlide();
+                                animate(y, block.y * cellSize, { duration: 0.1 });
+                                onMove(block.id, newGridX, block.y);
+                            } else {
+                                audio.playError();
+                                animate(x, block.x * cellSize, { type: 'spring', bounce: 0 });
+                                animate(y, block.y * cellSize, { type: 'spring', bounce: 0 });
+                            }
+                        }
+                    } else if (diffY >= diffX && diffY > 8) {
+                        // Vertical movement
+                        let escaped = false;
+                        let escapeTargetY = block.y;
+                        const blockH = block.dir === 'V' ? block.size : 1;
+
+                        if (block.dir === 'V' && constraints.minY < 0 && (valY / cellSize) < 0.35) {
+                            escaped = true;
+                            escapeTargetY = constraints.minY;
+                        } else if (block.dir === 'V' && constraints.maxY === gridSize && (valY / cellSize) > (gridSize - blockH - 0.35)) {
+                            escaped = true;
+                            escapeTargetY = constraints.maxY;
+                        }
+
+                        if (escaped) {
+                            setIsEscapingAnimating(true);
+                            audio.playSlide();
+                            const targetValY = escapeTargetY * cellSize;
+                            animate(x, block.x * cellSize, { duration: 0.1 });
+                            animate(y, targetValY, { 
+                                type: 'tween', 
+                                ease: 'easeIn', 
+                                duration: 0.35, 
+                                onComplete: () => onMove(block.id, block.x, escapeTargetY) 
+                            });
+                        } else {
+                            let newGridY = Math.round(valY / cellSize);
+                            newGridY = Math.max(constraints.minY, Math.min(newGridY, constraints.maxY));
+
+                            if (newGridY !== block.y) {
+                                audio.playSlide();
+                                animate(x, block.x * cellSize, { duration: 0.1 });
+                                onMove(block.id, block.x, newGridY);
+                            } else {
+                                audio.playError();
+                                animate(x, block.x * cellSize, { type: 'spring', bounce: 0 });
+                                animate(y, block.y * cellSize, { type: 'spring', bounce: 0 });
+                            }
+                        }
+                    } else {
+                        // Spring back both
+                        animate(x, block.x * cellSize, { type: 'spring', bounce: 0 });
+                        animate(y, block.y * cellSize, { type: 'spring', bounce: 0 });
+                    }
                 } else {
-                    audio.playError();
-                    if (block.dir === 'H') animate(x, block.x * cellSize, { type: 'spring', bounce: 0 });
-                    if (block.dir === 'V') animate(y, block.y * cellSize, { type: 'spring', bounce: 0 });
+                    // Classic 1D Movement
+                    if (block.dir === 'H') {
+                        const valX = x.get();
+                        let newGridX = Math.round(valX / cellSize);
+                        newGridX = Math.max(constraints.minX, Math.min(newGridX, constraints.maxX));
+
+                        if (newGridX !== block.x) {
+                            audio.playSlide();
+                            onMove(block.id, newGridX, block.y);
+                        } else {
+                            audio.playError();
+                            animate(x, block.x * cellSize, { type: 'spring', bounce: 0 });
+                        }
+                    } else {
+                        const valY = y.get();
+                        let newGridY = Math.round(valY / cellSize);
+                        newGridY = Math.max(constraints.minY, Math.min(newGridY, constraints.maxY));
+
+                        if (newGridY !== block.y) {
+                            audio.playSlide();
+                            onMove(block.id, block.x, newGridY);
+                        } else {
+                            audio.playError();
+                            animate(y, block.y * cellSize, { type: 'spring', bounce: 0 });
+                        }
+                    }
                 }
             }}
             whileDrag={{ scale: 1.05, zIndex: 50 }}
@@ -171,10 +644,29 @@ const BlockView = ({ block, blocks, cellSize, onMove, hasWon, isHammerActive, on
             onClick={() => {
                 if (isHammerActive && block.type !== 'target') {
                     onHammerUse(block.id);
+                } else if (isScrew) {
+                    const now = Date.now();
+                    const DOUBLE_TAP_DELAY = 300;
+                    if (now - lastClickTime.current < DOUBLE_TAP_DELAY) {
+                        onRotate?.(block.id);
+                        lastClickTime.current = 0;
+                    } else {
+                        lastClickTime.current = now;
+                    }
                 }
             }}
         >
-           <div className={`w-full h-full rounded-[14px] flex border-2 overflow-hidden relative box-border ${theme.bg} ${theme.border} ${theme.shadow} ${theme.glowInset} ${isHammerActive && block.type !== 'target' ? 'animate-pulse' : ''}`}>
+           <div 
+               className={`w-full h-full rounded-[14px] flex border-2 overflow-hidden relative box-border ${theme.bg} ${theme.border} ${theme.shadow} ${theme.glowInset} ${isHammerActive && block.type !== 'target' ? 'animate-pulse' : ''}`}
+               style={{
+                   transform: `translate(${jitterX}px, ${jitterY}px)`
+               }}
+           >
+               {theme.isObstacle && (
+                   <div className="absolute inset-0 opacity-20 pointer-events-none" style={{
+                       backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, #ffffff 10px, #ffffff 20px)'
+                   }} />
+               )}
                {isHammerActive && block.type !== 'target' && (
                    <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center z-30">
                        <Hammer className="w-8 h-8 text-red-500 animate-bounce" />
@@ -211,7 +703,12 @@ const BlockView = ({ block, blocks, cellSize, onMove, hasWon, isHammerActive, on
                        }`} 
                     />
                </div>
+
            </div>
+
+           {/* Glass Cracking & Flying Shards Rendered Outside the Overflow Container */}
+           {renderCracks()}
+           {renderShards()}
         </motion.div>
     )
 }
@@ -674,12 +1171,43 @@ const SuccessScreen = ({
     );
 };
 
-function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete, onRestart, coins, setCoins, powerups, setPowerups, lives, setLives, onOutOfLives }: { levelIndex: number, unlockedLevel: number, isUnlocked: boolean, onBack: () => void, onComplete: (moves: number, stars: number, claimedReward: number) => void, onRestart: () => void, coins: number, setCoins: React.Dispatch<React.SetStateAction<number>>, powerups: PowerUpInventory, setPowerups: React.Dispatch<React.SetStateAction<PowerUpInventory>>, lives: number, setLives: React.Dispatch<React.SetStateAction<number>>, onOutOfLives: () => void }) {
-  const [levelData, setLevelData] = useState<{blocks: BlockData[], maxMoves: number, minMoves: number} | null>(null);
+function GameScreen({ 
+    levelIndex, 
+    unlockedLevel, 
+    isUnlocked, 
+    onBack, 
+    onComplete, 
+    onRestart, 
+    coins, 
+    setCoins, 
+    powerups, 
+    setPowerups, 
+    lives, 
+    setLives, 
+    onOutOfLives,
+    gameMode = 'classic'
+}: { 
+    levelIndex: number, 
+    unlockedLevel: number, 
+    isUnlocked: boolean, 
+    onBack: () => void, 
+    onComplete: (moves: number, stars: number, claimedReward: number) => void, 
+    onRestart: () => void, 
+    coins: number, 
+    setCoins: React.Dispatch<React.SetStateAction<number>>, 
+    powerups: PowerUpInventory, 
+    setPowerups: React.Dispatch<React.SetStateAction<PowerUpInventory>>, 
+    lives: number, 
+    setLives: React.Dispatch<React.SetStateAction<number>>, 
+    onOutOfLives: () => void,
+    gameMode?: 'classic' | 'screw'
+}) {
+  const [levelData, setLevelData] = useState<{blocks: BlockData[], maxMoves: number, minMoves: number, gates?: ScrewGate[]} | null>(null);
   const [blocks, setBlocks] = useState<BlockData[]>([]);
   const [history, setHistory] = useState<BlockData[][]>([]);
   const [moves, setMoves] = useState(0);
   const [timeLeft, setTimeLeft] = useState(60);
+  const [timeBonuses, setTimeBonuses] = useState<{ id: number; text: string }[]>([]);
   const [hasWon, setHasWon] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [hasFailed, setHasFailed] = useState(false);
@@ -745,7 +1273,8 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
   
   const boardRef = useRef<HTMLDivElement>(null);
   const boardSize = useBoardSize(boardRef);
-  const cellSize = boardSize / 6;
+  const gridSize = gameMode === 'screw' ? 8 : 6;
+  const cellSize = boardSize / gridSize;
 
   const getTimerColor = (time: number) => {
     if (time <= 10) return '#ff5e5e';
@@ -760,19 +1289,33 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
      setIsLoading(true);
      // Small timeout to allow UI to render loading state before heavy generation
      setTimeout(() => {
-         const data = generateLevel(levelIndex);
-         setLevelData(data);
+         let data;
+         if (gameMode === 'screw') {
+             data = generateScrewLevel(levelIndex, 8);
+         } else {
+             data = generateLevel(levelIndex);
+         }
+         setLevelData(data as any);
          setBlocks(JSON.parse(JSON.stringify(data.blocks)));
          setHistory([]);
          setMoves(0);
-          setTimeLeft(60);
+         setTimeLeft(60);
          setHasWon(false);
          setHasFailed(false);
          setIsLoading(false);
          setTutorialStep(0);
          setBonusMoves(0);
+         setIsExiting(false);
+         setActivePowerUp(null);
+         setIsGhostActive(false);
+         setTimeBonuses([]);
+         setShowRestartConfirm(false);
+         setShowBackConfirm(false);
+         setShowRefillModal(false);
+         setRefillItem(null);
+         setIsWatchingAd(false);
      }, 10);
-  }, [levelIndex]);
+  }, [levelIndex, gameMode]);
 
   useEffect(() => {
     // Show tutorial only on the very first level
@@ -816,7 +1359,7 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
    }, [hasWon, hasFailed, isLoading, isExiting, isWatchingAd, showTutorial, showRefillModal, showRestartConfirm, showBackConfirm, setLives]);
 
    useEffect(() => {
-      if (hasWon || hasFailed) {
+      if (hasWon || hasFailed || gameMode === 'screw') {
          audio.stopGameBGM();
      } else {
          audio.playGameBGM();
@@ -825,7 +1368,7 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
      return () => {
          audio.stopGameBGM();
      };
-  }, [hasWon, hasFailed]);
+  }, [hasWon, hasFailed, gameMode]);
   
 
   
@@ -837,41 +1380,194 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
 
   useEffect(() => {
      if (hasWon || hasFailed || isExiting) return;
-     const target = blocks.find(b => b.type === 'target');
-     if (target && target.x === 6 - target.size) {
-         setIsExiting(true);
-         audio.playWin();
-         
-         // Wait for animation to finish before showing success screen
-         setTimeout(() => {
-             setHasWon(true);
-         }, 1300);
-     } else if (levelData && moves >= levelData.maxMoves + bonusMoves) {
-         setHasFailed(true);
-         setLives(prev => Math.max(0, prev - 1));
-         audio.playError();
+     if (gameMode === 'screw') {
+         if (!isLoading && levelData && blocks.filter(b => b.type === 'color').length === 0) {
+             setIsExiting(true);
+             audio.playWin();
+             setTimeout(() => {
+                 setHasWon(true);
+             }, 1300);
+         } else if (!isLoading && levelData && moves >= levelData.maxMoves + bonusMoves) {
+             setHasFailed(true);
+             setLives(prev => Math.max(0, prev - 1));
+             audio.playError();
+         }
+     } else {
+         const target = blocks.find(b => b.type === 'target');
+         if (!isLoading && levelData && target && target.x === 6 - target.size) {
+             setIsExiting(true);
+             audio.playWin();
+             
+             // Wait for animation to finish before showing success screen
+             setTimeout(() => {
+                 setHasWon(true);
+             }, 1300);
+         } else if (!isLoading && levelData && moves >= levelData.maxMoves + bonusMoves) {
+             setHasFailed(true);
+             setLives(prev => Math.max(0, prev - 1));
+             audio.playError();
+         }
      }
-  }, [blocks, levelData, moves, hasWon, hasFailed, isExiting]);
+  }, [blocks, levelData, moves, hasWon, hasFailed, isExiting, gameMode, isLoading]);
 
-  const handleMove = (id: number, newGrid: number) => {
+  const handleMove = (id: number, newX: number, newY?: number) => {
       if (hasWon || hasFailed) return;
       
       // Tutorial logic
       if (levelIndex === 0 && showTutorial) {
-        if (tutorialStep === 0 && id === 2 && newGrid >= 3) {
-            setTutorialStep(1);
-        } else if (tutorialStep === 1 && id === 1 && newGrid >= 4) {
-            completeTutorial();
+        if (gameMode === 'classic') {
+            if (tutorialStep === 0 && id === 2 && newX >= 3) {
+                setTutorialStep(1);
+            } else if (tutorialStep === 1 && id === 1 && newX >= 4) {
+                completeTutorial();
+            }
+        } else if (gameMode === 'screw') {
+            // In screw mode, id 101 must be swiped left, so newX < 2
+            if (tutorialStep === 1 && id === 101 && newX < 2) {
+                setTutorialStep(2);
+            } 
+            // id 102 must be swiped down, so newY > 3
+            else if (tutorialStep === 2 && id === 102 && newY !== undefined && newY > 3) {
+                completeTutorial();
+            }
         }
+      }
+
+      const block = blocks.find(b => b.id === id);
+      if (!block) return;
+
+      const isScrew = gameMode === 'screw';
+      const actualNewY = newY !== undefined ? newY : block.y;
+      
+      const isEscaping = isScrew && (
+          (block.dir === 'H' && (newX === -block.size || newX === gridSize)) ||
+          (block.dir === 'V' && (actualNewY === -block.size || actualNewY === gridSize))
+      );
+
+      setHistory(prev => [...prev, blocks]);
+
+      if (isEscaping) {
+          audio.playCrusher();
+          triggerShake();
+          let px = 0;
+          let py = 0;
+          if (block.dir === 'H') {
+              px = newX === -block.size ? 0 : boardSize;
+              py = (block.y + 0.5) * cellSize;
+          } else {
+              px = (block.x + 0.5) * cellSize;
+              py = actualNewY === -block.size ? 0 : boardSize;
+          }
+          createParticles(px, py, block.color || '#00ffff', 32);
+          
+          // Add 5 seconds to timer
+          setTimeLeft(prev => prev + 5);
+          audio.playCollect();
+
+          // Trigger +5s floating animation
+          const bonusId = Date.now() + Math.random();
+          setTimeBonuses(prev => [...prev, { id: bonusId, text: "+5s" }]);
+          setTimeout(() => {
+              setTimeBonuses(prev => prev.filter(b => b.id !== bonusId));
+          }, 1000);
+
+          // Remove block from grid
+          setBlocks(prev => prev.filter(b => b.id !== id));
+      } else {
+          setBlocks(prev => prev.map(b => {
+             if (b.id !== id) return b;
+             return { ...b, x: newX, y: actualNewY };
+          }));
+      }
+
+      setMoves(m => m + 1);
+      
+      if (isGhostActive) {
+          setIsGhostActive(false);
+      }
+  };
+
+  const handleRotate = (id: number) => {
+      if (gameMode !== 'screw') return;
+      if (hasWon || hasFailed || isLoading) return;
+
+      if (levelIndex === 0 && showTutorial && gameMode === 'screw') {
+          if (tutorialStep === 0 && id === 101) {
+              setTutorialStep(1);
+          }
+      }
+
+      const block = blocks.find(b => b.id === id);
+      if (!block) return;
+
+      const newDir = block.dir === 'H' ? 'V' : 'H';
+      const newBlockW = newDir === 'H' ? block.size : 1;
+      const newBlockH = newDir === 'V' ? block.size : 1;
+
+      const hasOverlap = (b1: BlockData, b2: BlockData) => {
+          const b1W = b1.dir === 'H' ? b1.size : 1;
+          const b1H = b1.dir === 'V' ? b1.size : 1;
+          const b2W = b2.dir === 'H' ? b2.size : 1;
+          const b2H = b2.dir === 'V' ? b2.size : 1;
+
+          return !(
+              b2.x + b2W <= b1.x ||
+              b2.x >= b1.x + b1W ||
+              b2.y + b2H <= b1.y ||
+              b2.y >= b1.y + b1H
+          );
+      };
+
+      let possiblePositions: {x: number, y: number}[] = [];
+      
+      for (let nx = 0; nx <= gridSize - newBlockW; nx++) {
+          for (let ny = 0; ny <= gridSize - newBlockH; ny++) {
+              possiblePositions.push({x: nx, y: ny});
+          }
+      }
+
+      // Sort positions by proximity to the center of the original block
+      const centerX = block.x + (block.dir === 'H' ? block.size : 1) / 2;
+      const centerY = block.y + (block.dir === 'V' ? block.size : 1) / 2;
+
+      possiblePositions.sort((a, b) => {
+          const centerA_X = a.x + newBlockW / 2;
+          const centerA_Y = a.y + newBlockH / 2;
+          const centerB_X = b.x + newBlockW / 2;
+          const centerB_Y = b.y + newBlockH / 2;
+
+          const distA = Math.pow(centerA_X - centerX, 2) + Math.pow(centerA_Y - centerY, 2);
+          const distB = Math.pow(centerB_X - centerX, 2) + Math.pow(centerB_Y - centerY, 2);
+          return distA - distB;
+      });
+
+      let validPos = null;
+      for (const pos of possiblePositions) {
+          if (pos.x < 0 || pos.x + newBlockW > gridSize || pos.y < 0 || pos.y + newBlockH > gridSize) {
+              continue;
+          }
+          const rotatedBlock: BlockData = { ...block, dir: newDir, x: pos.x, y: pos.y };
+          const overlap = blocks.some(b => b.id !== id && hasOverlap(rotatedBlock, b));
+          if (!overlap) {
+              validPos = pos;
+              break;
+          }
+      }
+
+      if (!validPos) {
+          audio.playError();
+          return;
       }
 
       setHistory(prev => [...prev, blocks]);
       setBlocks(prev => prev.map(b => {
-         if (b.id !== id) return b;
-         return { ...b, [b.dir === 'H' ? 'x' : 'y']: newGrid };
+          if (b.id !== id) return b;
+          return { ...b, dir: newDir, x: validPos.x, y: validPos.y };
       }));
+
+      audio.playSlide();
       setMoves(m => m + 1);
-      
+
       if (isGhostActive) {
           setIsGhostActive(false);
       }
@@ -918,29 +1614,41 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
           setTimeout(() => setActiveEffects(prev => prev.filter(e => e.id !== effectId)), 800);
 
           setBlocks(prev => {
-              const target = prev.find(b => b.type === 'target')!;
-              const others = prev.filter(b => b.type !== 'target');
-              const newBlocks = [...prev];
-              
-              // Group compatible blocks
-              const groups: Record<string, number[]> = {};
-              others.forEach((b, idx) => {
-                  const key = `${b.dir}-${b.size}`;
-                  if (!groups[key]) groups[key] = [];
-                  groups[key].push(idx);
-              });
-              
-              // Swap within groups
-              Object.values(groups).forEach(indices => {
-                  if (indices.length < 2) return;
-                  const originalPositions = indices.map(idx => ({ x: others[idx].x, y: others[idx].y }));
-                  const shuffledPositions = [...originalPositions].sort(() => Math.random() - 0.5);
-                  indices.forEach((idx, i) => {
-                      others[idx] = { ...others[idx], ...shuffledPositions[i] };
+              if (gameMode === 'screw') {
+                  return prev.map(b => {
+                      // In screw mode, only shuffle along their valid movement axis
+                      // to prevent them from moving to a row/col without a matching gate
+                      const { minGrid, maxGrid } = getConstraints(b, prev, false, 8);
+                      if (maxGrid >= minGrid) {
+                          const newPos = minGrid + Math.floor(Math.random() * (maxGrid - minGrid + 1));
+                          return { ...b, [b.dir === 'H' ? 'x' : 'y']: newPos };
+                      }
+                      return b;
                   });
-              });
-              
-              return [target, ...others];
+              } else {
+                  const target = prev.find(b => b.type === 'target');
+                  const others = prev.filter(b => b.type !== 'target');
+                  
+                  // Group compatible blocks
+                  const groups: Record<string, number[]> = {};
+                  others.forEach((b, idx) => {
+                      const key = `${b.dir}-${b.size}`;
+                      if (!groups[key]) groups[key] = [];
+                      groups[key].push(idx);
+                  });
+                  
+                  // Swap within groups
+                  Object.values(groups).forEach(indices => {
+                      if (indices.length < 2) return;
+                      const originalPositions = indices.map(idx => ({ x: others[idx].x, y: others[idx].y }));
+                      const shuffledPositions = [...originalPositions].sort(() => Math.random() - 0.5);
+                      indices.forEach((idx, i) => {
+                          others[idx] = { ...others[idx], ...shuffledPositions[i] };
+                      });
+                  });
+                  
+                  return target ? [target, ...others] : others;
+              }
           });
       }
   };
@@ -1030,6 +1738,10 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
       setTimeLeft(60);
       setHasWon(false);
       setHasFailed(false);
+      setIsExiting(false);
+      setActivePowerUp(null);
+      setIsGhostActive(false);
+      setTimeBonuses([]);
   };
 
   const handleRestartClick = () => {
@@ -1118,6 +1830,23 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
                             />
                         </div>
                     </div>
+                    {/* Floating Time Bonuses */}
+                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-visible z-50">
+                        <AnimatePresence>
+                            {timeBonuses.map(bonus => (
+                                <motion.div
+                                    key={bonus.id}
+                                    initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                                    animate={{ opacity: 1, y: -25, scale: 1.2 }}
+                                    exit={{ opacity: 0, scale: 0.8 }}
+                                    transition={{ duration: 0.8, ease: "easeOut" }}
+                                    className="absolute text-[#00ffff] font-extrabold text-sm drop-shadow-[0_0_8px_#00ffff] whitespace-nowrap"
+                                >
+                                    {bonus.text}
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                    </div>
                 </div>
 
                 {/* Moves HUD */}
@@ -1148,7 +1877,7 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
             <motion.div 
                 ref={boardRef} 
                 animate={shake ? { x: [-5, 5, -5, 5, 0], y: [-2, 2, -2, 2, 0] } : {}}
-                className="relative w-full max-w-[min(100%,400px)] aspect-square bg-[#030914] rounded-[24px] md:rounded-[32px] border-2 border-slate-800 shadow-2xl overflow-hidden box-border"
+                className="relative w-full max-w-[min(100%,400px)] aspect-square bg-[#030914] rounded-[24px] md:rounded-[32px] border-2 border-slate-800 shadow-2xl overflow-visible box-border"
             >
                 {/* Particles Layer */}
                 {particles.map(p => (
@@ -1228,17 +1957,141 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
                 )}
 
                 {/* Draw Grid Background */}
-                <div className="absolute inset-0 grid grid-cols-6 grid-rows-6 pointer-events-none opacity-[0.05]">
-                    {Array.from({length: 36}).map((_, i) => (
+                <div 
+                    className="absolute inset-0 grid pointer-events-none opacity-[0.05]"
+                    style={{
+                        gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
+                        gridTemplateRows: `repeat(${gridSize}, minmax(0, 1fr))`,
+                    }}
+                >
+                    {Array.from({length: gridSize * gridSize}).map((_, i) => (
                         <div key={i} className="border border-[#00ffff]/30" />
                     ))}
                 </div>
 
                 {/* Exit Tunnel Lighting */}
-                <div className="absolute top-[33.33%] right-0 w-[4px] h-[16.66%] bg-[#ff2a2a] shadow-[0_0_15px_#ff2a2a] z-20 animate-pulse rounded-l" />
+                {gameMode === 'classic' && (
+                    <div className="absolute top-[33.33%] right-0 w-[4px] h-[16.66%] bg-[#ff2a2a] shadow-[0_0_15px_#ff2a2a] z-20 animate-pulse rounded-l" />
+                )}
+
+                {/* Render Screw Gates & Rotating Crushers */}
+                {gameMode === 'screw' && levelData?.gates?.map((gate, idx) => {
+                    const lineStyle: React.CSSProperties = {};
+                    const crusherStyle: React.CSSProperties = {};
+                    const colorValue = gate.color === 'red' ? '#ff5e5e' :
+                                       gate.color === 'orange' ? '#ff9900' :
+                                       gate.color === 'teal' ? '#00ffff' :
+                                       gate.color === 'blue' ? '#3b82f6' :
+                                       gate.color === 'green' ? '#10b981' : '#a855f7';
+                    
+                    const isVertical = gate.side === 'left' || gate.side === 'right';
+                    const bladeSize = Math.max(48, cellSize * 0.95);
+                    const offsetW = -bladeSize / 2;
+                    const offsetH = -bladeSize / 2;
+                    
+                    
+
+                    if (gate.side === 'left') {
+                        lineStyle.left = 0;
+                        lineStyle.top = `${gate.index * cellSize}px`;
+                        lineStyle.width = '6px';
+                        lineStyle.height = `${cellSize}px`;
+
+                        crusherStyle.left = `${offsetW}px`;
+                        crusherStyle.top = `${gate.index * cellSize + cellSize / 2 + offsetH}px`;
+                        crusherStyle.width = `${bladeSize}px`;
+                        crusherStyle.height = `${bladeSize}px`;
+                    } else if (gate.side === 'right') {
+                        lineStyle.right = 0;
+                        lineStyle.top = `${gate.index * cellSize}px`;
+                        lineStyle.width = '6px';
+                        lineStyle.height = `${cellSize}px`;
+
+                        crusherStyle.right = `${offsetW}px`;
+                        crusherStyle.top = `${gate.index * cellSize + cellSize / 2 + offsetH}px`;
+                        crusherStyle.width = `${bladeSize}px`;
+                        crusherStyle.height = `${bladeSize}px`;
+                    } else if (gate.side === 'top') {
+                        lineStyle.top = 0;
+                        lineStyle.left = `${gate.index * cellSize}px`;
+                        lineStyle.height = '6px';
+                        lineStyle.width = `${cellSize}px`;
+
+                        crusherStyle.top = `${offsetH}px`;
+                        crusherStyle.left = `${gate.index * cellSize + cellSize / 2 + offsetW}px`;
+                        crusherStyle.width = `${bladeSize}px`;
+                        crusherStyle.height = `${bladeSize}px`;
+                    } else if (gate.side === 'bottom') {
+                        lineStyle.bottom = 0;
+                        lineStyle.left = `${gate.index * cellSize}px`;
+                        lineStyle.height = '6px';
+                        lineStyle.width = `${cellSize}px`;
+
+                        crusherStyle.bottom = `${offsetH}px`;
+                        crusherStyle.left = `${gate.index * cellSize + cellSize / 2 + offsetW}px`;
+                        crusherStyle.width = `${bladeSize}px`;
+                        crusherStyle.height = `${bladeSize}px`;
+                    }
+
+                    return (
+                        <React.Fragment key={`gate-frag-${idx}`}>
+                            {/* Neon gate glow bar */}
+                            <div 
+                                className="absolute z-20 flex items-center justify-center pointer-events-none"
+                                style={lineStyle}
+                            >
+                                <div 
+                                    className="w-full h-full animate-pulse rounded-sm"
+                                    style={{ 
+                                        backgroundColor: colorValue, 
+                                        boxShadow: `0 0 12px ${colorValue}, 0 0 4px ${colorValue}` 
+                                    }} 
+                                />
+                            </div>
+
+                            {/* Rotating Circular Saw Blade */}
+                            <div
+                                className="absolute z-30 pointer-events-none flex items-center justify-center"
+                                style={crusherStyle}
+                            >
+                                <div 
+                                    className="w-full h-full rounded-full animate-spin flex items-center justify-center relative"
+                                    style={{ 
+                                        animationDuration: '0.6s',
+                                        animationTimingFunction: 'linear',
+                                        filter: `drop-shadow(0 0 8px ${colorValue})`
+                                    }}
+                                >
+                                    <svg viewBox="0 0 100 100" className="w-[85%] h-[85%] drop-shadow-xl" style={{ color: colorValue }}>
+                                        <g stroke="#ffffff" strokeWidth="1.5">
+                                            {Array.from({ length: 12 }).map((_, i) => (
+                                                <polygon 
+                                                    key={i} 
+                                                    points="50,14 58,2 62,18" 
+                                                    fill="currentColor" 
+                                                    transform={`rotate(${i * 30} 50 50)`} 
+                                                />
+                                            ))}
+                                            <circle cx="50" cy="50" r="34" fill="#111" stroke="currentColor" strokeWidth="4" />
+                                            <circle cx="50" cy="50" r="14" fill="currentColor" opacity="0.9" />
+                                            <circle cx="50" cy="50" r="6" fill="#111" />
+                                            {Array.from({ length: 4 }).map((_, i) => (
+                                                <circle 
+                                                    key={`rivet-${i}`}
+                                                    cx="50" cy="26" r="2.5" fill="#fff" opacity="0.6" stroke="none"
+                                                    transform={`rotate(${i * 90} 50 50)`}
+                                                />
+                                            ))}
+                                        </g>
+                                    </svg>
+                                </div>
+                            </div>
+                        </React.Fragment>
+                    );
+                })}
 
                 {/* Blocks Area */}
-                <div className="w-full h-full relative z-10">
+                <div className="w-full h-full relative z-10 overflow-hidden rounded-[22px] md:rounded-[30px]">
                     <AnimatePresence mode="popLayout">
                         {!isLoading && cellSize > 0 && blocks.map(block => (
                             <BlockView 
@@ -1248,9 +2101,12 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
                                 isGhostActive={isGhostActive}
                                 cellSize={cellSize} 
                                 onMove={handleMove} 
+                                onRotate={handleRotate}
                                 hasWon={isExiting || hasWon}
                                 isHammerActive={activePowerUp === 'hammer'}
                                 onHammerUse={handleHammerUse}
+                                gameMode={gameMode}
+                                gates={levelData?.gates || []}
                             />
                         ))}
                     </AnimatePresence>
@@ -1266,7 +2122,7 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
                             >
                                 <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded-2xl" />
                                 
-                                {tutorialStep === 0 && (
+                                {tutorialStep === 0 && gameMode !== 'screw' && (
                                     <motion.div
                                         key="step0"
                                         className="absolute z-50 flex flex-col items-center justify-center pointer-events-none"
@@ -1295,7 +2151,7 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
                                     </motion.div>
                                 )}
 
-                                {tutorialStep === 1 && (
+                                {tutorialStep === 1 && gameMode !== 'screw' && (
                                     <motion.div
                                         key="step1"
                                         className="absolute z-50 flex flex-col items-center justify-center pointer-events-none"
@@ -1320,6 +2176,75 @@ function GameScreen({ levelIndex, unlockedLevel, isUnlocked, onBack, onComplete,
                                         >
                                             <span className="text-[#ff5e5e] font-black text-[10px] tracking-widest uppercase drop-shadow-[0_0_5px_#ff5e5e]">SWIPE</span>
                                             <ChevronsRight className="text-[#ff5e5e] w-6 h-6 drop-shadow-[0_0_10px_#ff5e5e]" />
+                                        </motion.div>
+                                    </motion.div>
+                                )}
+
+                                {gameMode === 'screw' && tutorialStep === 0 && (
+                                    <motion.div
+                                        key="step0-screw"
+                                        className="absolute z-50 flex flex-col items-center justify-center pointer-events-none"
+                                        style={{ 
+                                            left: `${2 * cellSize}px`, 
+                                            top: `${2 * cellSize}px`, 
+                                            width: `${cellSize}px`, 
+                                            height: `${cellSize * 2}px`,
+                                        }}
+                                    >
+                                        <div className="absolute z-0 inset-0 border-[3px] border-[#ff5e5e] rounded-xl shadow-[0_0_20px_#ff5e5e,inset_0_0_20px_#ff5e5e] opacity-80 animate-pulse bg-[#ff5e5e]/10" />
+                                        <motion.div
+                                            className="z-10 bg-black/80 flex flex-col items-center justify-center p-2 px-3 rounded-xl backdrop-blur-sm border border-[#ff5e5e]/60 shadow-[0_0_15px_rgba(255,94,94,0.3)] pointer-events-none mt-12"
+                                            animate={{ scale: [1, 1.1, 1] }}
+                                            transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+                                        >
+                                            <span className="text-[#ff5e5e] font-black text-[10px] tracking-widest uppercase mb-1 drop-shadow-[0_0_5px_#ff5e5e] text-center">DOUBLE TAP<br/>TO ROTATE</span>
+                                            <RotateCw className="text-[#ff5e5e] w-5 h-5 drop-shadow-[0_0_10px_#ff5e5e]" />
+                                        </motion.div>
+                                    </motion.div>
+                                )}
+
+                                {gameMode === 'screw' && tutorialStep === 1 && (
+                                    <motion.div
+                                        key="step1-screw"
+                                        className="absolute z-50 flex flex-col items-center justify-center pointer-events-none"
+                                        style={{ 
+                                            left: `${2 * cellSize}px`, 
+                                            top: `${2 * cellSize}px`, 
+                                            width: `${cellSize * 2}px`, 
+                                            height: `${cellSize}px`,
+                                        }}
+                                    >
+                                        <div className="absolute z-0 inset-0 border-[3px] border-[#ff5e5e] rounded-xl shadow-[0_0_20px_#ff5e5e,inset_0_0_20px_#ff5e5e] opacity-80 animate-pulse bg-[#ff5e5e]/10" />
+                                        <motion.div
+                                            className="z-10 bg-black/80 flex flex-col items-center justify-center p-2 px-3 rounded-xl backdrop-blur-sm border border-[#ff5e5e]/60 shadow-[0_0_15px_rgba(255,94,94,0.3)] pointer-events-none -ml-16"
+                                            animate={{ x: [0, -cellSize * 0.5, 0] }}
+                                            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                                        >
+                                            <span className="text-[#ff5e5e] font-black text-[10px] tracking-widest uppercase mb-1 drop-shadow-[0_0_5px_#ff5e5e] text-center">SWIPE TO<br/>CRUSH</span>
+                                            <MoveHorizontal className="text-[#ff5e5e] w-5 h-5 drop-shadow-[0_0_10px_#ff5e5e]" />
+                                        </motion.div>
+                                    </motion.div>
+                                )}
+
+                                {gameMode === 'screw' && tutorialStep === 2 && (
+                                    <motion.div
+                                        key="step2-screw"
+                                        className="absolute z-50 flex flex-col items-center justify-center pointer-events-none"
+                                        style={{ 
+                                            left: `${4 * cellSize}px`, 
+                                            top: `${3 * cellSize}px`, 
+                                            width: `${cellSize}px`, 
+                                            height: `${cellSize * 2}px`,
+                                        }}
+                                    >
+                                        <div className="absolute z-0 inset-0 border-[3px] border-[#00ff9d] rounded-xl shadow-[0_0_20px_#00ff9d,inset_0_0_20px_#00ff9d] opacity-80 animate-pulse bg-[#00ff9d]/10" />
+                                        <motion.div
+                                            className="z-10 bg-black/80 flex flex-col items-center justify-center p-2 px-3 rounded-xl backdrop-blur-sm border border-[#00ff9d]/60 shadow-[0_0_15px_rgba(0,255,157,0.3)] pointer-events-none mt-16"
+                                            animate={{ y: [0, cellSize * 0.5, 0] }}
+                                            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                                        >
+                                            <span className="text-[#00ff9d] font-black text-[10px] tracking-widest uppercase mb-1 drop-shadow-[0_0_5px_#00ff9d] text-center">SWIPE TO<br/>CRUSH</span>
+                                            <MoveVertical className="text-[#00ff9d] w-5 h-5 drop-shadow-[0_0_10px_#00ff9d]" />
                                         </motion.div>
                                     </motion.div>
                                 )}
@@ -2056,8 +2981,34 @@ function PlaceholderScreen({ title, color, onBack }: { title: string, color: str
     );
 }
 
-function LevelsScreen({ unlockedLevel, coins, lives, timeUntilNextLife, levelStars, onSelectLevel, onBack }: { unlockedLevel: number, coins: number, lives: number, timeUntilNextLife: number, levelStars: Record<number, number>, onSelectLevel: (lvl: number) => void, onBack: () => void }) {
-    const displayCount = Math.max(24, Math.ceil((unlockedLevel + 10) / 4) * 4);
+function LevelsScreen({ 
+    unlockedLevel, 
+    coins, 
+    lives, 
+    timeUntilNextLife, 
+    levelStars, 
+    unlockedScrewLevel,
+    screwStars,
+    gameMode,
+    setGameMode,
+    onSelectLevel, 
+    onBack 
+}: { 
+    unlockedLevel: number, 
+    coins: number, 
+    lives: number, 
+    timeUntilNextLife: number, 
+    levelStars: Record<number, number>, 
+    unlockedScrewLevel: number,
+    screwStars: Record<number, number>,
+    gameMode: 'classic' | 'screw',
+    setGameMode: (m: 'classic' | 'screw') => void,
+    onSelectLevel: (lvl: number) => void, 
+    onBack: () => void 
+}) {
+    const activeUnlockedLevel = gameMode === 'screw' ? unlockedScrewLevel : unlockedLevel;
+    const activeStars = gameMode === 'screw' ? screwStars : levelStars;
+    const displayCount = Math.max(24, Math.ceil((activeUnlockedLevel + 10) / 4) * 4);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -2065,7 +3016,7 @@ function LevelsScreen({ unlockedLevel, coins, lives, timeUntilNextLife, levelSta
         if (scrollContainerRef.current) {
             const container = scrollContainerRef.current;
             const levelButtons = container.querySelectorAll('button');
-            const targetButton = levelButtons[unlockedLevel];
+            const targetButton = levelButtons[activeUnlockedLevel];
             
             if (targetButton) {
                 setTimeout(() => {
@@ -2076,7 +3027,7 @@ function LevelsScreen({ unlockedLevel, coins, lives, timeUntilNextLife, levelSta
                 }, 300);
             }
         }
-    }, [unlockedLevel]);
+    }, [activeUnlockedLevel, gameMode]);
     
     return (
         <motion.div 
@@ -2145,19 +3096,45 @@ function LevelsScreen({ unlockedLevel, coins, lives, timeUntilNextLife, levelSta
                   <div className="absolute inset-0 bg-[#00ffff]/10 blur-[50px] rounded-full pointer-events-none" />
 
                   {/* Spacer for top padding */}
-                  <div className="h-6" />
+                  <div className="h-4" />
 
-                  <div className="relative w-[80%] h-[70px] mb-[4px] bg-[#010b14]/90 shadow-[0_0_20px_rgba(0,255,255,0.3),inset_0_0_15px_rgba(0,255,255,0.2)] border-t border-l border-r border-[#00ffff]/60 flex justify-center items-center backdrop-blur-sm z-10 shrink-0"
+                  <div className="relative w-[80%] h-[64px] mb-3 bg-[#010b14]/90 shadow-[0_0_20px_rgba(0,255,255,0.3),inset_0_0_15px_rgba(0,255,255,0.2)] border-t border-l border-r border-[#00ffff]/60 flex justify-center items-center backdrop-blur-sm z-10 shrink-0"
                        style={{ clipPath: 'polygon(15% 0%, 85% 0%, 100% 30%, 100% 100%, 0% 100%, 0% 30%)' }}>
                        
                        {/* Inner border line */}
                        <div className="absolute inset-[2px] bg-[#021020]"
                             style={{ clipPath: 'polygon(15% 0%, 85% 0%, 100% 30%, 100% 100%, 0% 100%, 0% 30%)' }} />
                             
-                       <h1 className="relative text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] to-[#38baff] tracking-[0.1em] uppercase z-20 px-4"
+                       <h1 className="relative text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] to-[#38baff] tracking-[0.1em] uppercase z-20 px-4"
                            style={{ WebkitTextStroke: '1.5px rgba(0,200,255,0.8)', textShadow: '0 0 15px rgba(0,255,255,0.8)' }}>
                            LEVELS
                        </h1>
+                  </div>
+
+                  {/* Mode Selector Tabs */}
+                  <div className="flex w-full bg-[#010b14]/90 border border-[#00ffff]/20 rounded-xl p-[3px] mb-4 gap-1 z-10 shrink-0">
+                      <button
+                          onClick={() => { audio.playTap(); setGameMode('classic'); }}
+                          className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2
+                              ${gameMode === 'classic'
+                                  ? 'bg-[#00ffff]/10 border border-[#00ffff]/40 text-[#00ffff] shadow-[0_0_10px_rgba(0,255,255,0.2)]'
+                                  : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                              }`}
+                      >
+                          <Shuffle className="w-3.5 h-3.5 text-[#00ffff]" />
+                          Classic
+                      </button>
+                      <button
+                          onClick={() => { audio.playTap(); setGameMode('screw'); }}
+                          className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2
+                              ${gameMode === 'screw'
+                                  ? 'bg-[#ffaa00]/10 border border-[#ffaa00]/40 text-[#ffaa00] shadow-[0_0_10px_rgba(255,170,0,0.2)]'
+                                  : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                              }`}
+                      >
+                          <RotateCcw className="w-3.5 h-3.5 rotate-45 text-[#ffaa00]" />
+                          Screw Escape
+                      </button>
                   </div>
 
                   {/* Main Container Frame */}
@@ -2179,9 +3156,9 @@ function LevelsScreen({ unlockedLevel, coins, lives, timeUntilNextLife, levelSta
                             >
                                 <div className="grid grid-cols-4 gap-3">
                                     {Array.from({length: displayCount}).map((_, i) => {
-                                        const isUnlocked = i <= unlockedLevel;
-                                        const isCurrent = i === unlockedLevel;
-                                        const starsEarned = levelStars[i] || 0;
+                                        const isUnlocked = i <= activeUnlockedLevel;
+                                        const isCurrent = i === activeUnlockedLevel;
+                                        const starsEarned = activeStars[i] || 0;
                                         return (
                                             <button
                                                 key={i}
@@ -2211,7 +3188,7 @@ function LevelsScreen({ unlockedLevel, coins, lives, timeUntilNextLife, levelSta
                                                 )}
 
                                                 {/* Stars line */}
-                                                {isUnlocked && i < unlockedLevel && (
+                                                {isUnlocked && i < activeUnlockedLevel && (
                                                     <div className="absolute bottom-1 w-full flex justify-center gap-[2px]">
                                                         {[...Array(3)].map((_, starIdx) => (
                                                             <Star key={starIdx} className={`w-2.5 h-2.5 ${starIdx < starsEarned ? 'fill-[#00ffff] text-[#00ffff]' : 'fill-transparent text-[#00ffff]/30 stroke-[2px]'}`} />
@@ -2817,6 +3794,27 @@ export default function App() {
       return {};
   });
   const [currentLevel, setCurrentLevel] = useState(0);
+  const [gameMode, setGameMode] = useState<'classic' | 'screw'>('classic');
+  const [unlockedScrewLevel, setUnlockedScrewLevel] = useState<number>(() => {
+      const saved = localStorage.getItem('neon_slide_progress');
+      if (saved) {
+          try {
+              const data = JSON.parse(saved);
+              return typeof data.unlockedScrewLevel === 'number' ? data.unlockedScrewLevel : 0;
+          } catch(e) {}
+      }
+      return 0;
+  });
+  const [screwStars, setScrewStars] = useState<Record<number, number>>(() => {
+      const saved = localStorage.getItem('neon_slide_progress');
+      if (saved) {
+          try {
+              const data = JSON.parse(saved);
+              return data.screwStars || {};
+          } catch(e) {}
+      }
+      return {};
+  });
   const [coins, setCoins] = useState<number>(() => {
       const saved = localStorage.getItem('neon_slide_progress');
       if (saved) {
@@ -2940,6 +3938,15 @@ export default function App() {
       const initAdMob = async () => {
           if (Capacitor.isNativePlatform()) {
               try {
+                  await FirebaseAnalytics.initializeFirebase({} as any);
+                  FirebaseAnalytics.setCollectionEnabled({ enabled: true });
+                  FirebaseAnalytics.logEvent({ name: 'app_open', params: {} });
+                  console.log('Firebase Analytics initialized');
+              } catch (e) {
+                  console.error('Failed to initialize Firebase Analytics', e);
+              }
+
+              try {
                   await AdMob.initialize({
                       initializeForTesting: false,
                   });
@@ -2980,23 +3987,33 @@ export default function App() {
           coins,
           powerups,
           lives,
-          lastLifeUpdate
+          lastLifeUpdate,
+          unlockedScrewLevel,
+          screwStars
       };
       localStorage.setItem('neon_slide_progress', JSON.stringify(progressData));
-  }, [unlockedLevel, levelStars, coins, powerups, lives, lastLifeUpdate]);
+  }, [unlockedLevel, levelStars, coins, powerups, lives, lastLifeUpdate, unlockedScrewLevel, screwStars]);
 
 
   const handleLevelComplete = (moves: number, earnedStars: number, claimedReward: number) => {
       const nextLevel = currentLevel + 1;
       
-      setLevelStars(prev => ({
-          ...prev,
-          [currentLevel]: Math.max(prev[currentLevel] || 0, earnedStars)
-      }));
-      
-      setUnlockedLevel(prev => Math.max(prev, nextLevel));
+      if (gameMode === 'screw') {
+          setScrewStars(prev => ({
+              ...prev,
+              [currentLevel]: Math.max(prev[currentLevel] || 0, earnedStars)
+          }));
+          setUnlockedScrewLevel(prev => Math.max(prev, nextLevel));
+      } else {
+          setLevelStars(prev => ({
+              ...prev,
+              [currentLevel]: Math.max(prev[currentLevel] || 0, earnedStars)
+          }));
+          setUnlockedLevel(prev => Math.max(prev, nextLevel));
+      }
       setCoins(prev => prev + claimedReward);
       
+      setCurrentLevel(nextLevel);
       setScreen('levels');
   };
 
@@ -3017,6 +4034,10 @@ export default function App() {
             lives={lives}
             timeUntilNextLife={timeUntilNextLife}
             levelStars={levelStars}
+            unlockedScrewLevel={unlockedScrewLevel}
+            screwStars={screwStars}
+            gameMode={gameMode}
+            setGameMode={setGameMode}
             onSelectLevel={(l) => {
                 if (lives > 0) {
                     setCurrentLevel(l);
@@ -3042,6 +4063,7 @@ export default function App() {
           lives={lives}
           setLives={setLives}
           onOutOfLives={() => setScreen('shop')}
+          gameMode={gameMode}
         />}
       {screen === 'shop' && <ShopScreen 
           coins={coins} 
