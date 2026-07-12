@@ -22,5 +22,13 @@
 	{
 		"pkg": "@capacitor/status-bar",
 		"classpath": "com.capacitorjs.plugins.statusbar.StatusBarPlugin"
+	},
+	{
+		"pkg": "@capawesome/capacitor-app-review",
+		"classpath": "io.capawesome.capacitorjs.plugins.appreview.AppReviewPlugin"
+	},
+	{
+		"pkg": "@capawesome/capacitor-app-update",
+		"classpath": "io.capawesome.capacitorjs.plugins.appupdate.AppUpdatePlugin"
 	}
 ]

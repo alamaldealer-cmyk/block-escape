@@ -12,7 +12,9 @@ import {
 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { FirebaseAnalytics } from '@capacitor-community/firebase-analytics';
-import { AdMob, RewardAdOptions, AdLoadInfo, RewardAdPluginEvents } from '@capacitor-community/admob';
+import { AdMob, RewardAdOptions, AdLoadInfo, RewardAdPluginEvents, BannerAdOptions, BannerAdSize, BannerAdPosition } from '@capacitor-community/admob';
+import { AppReview } from '@capawesome/capacitor-app-review';
+import { AppUpdate, AppUpdateAvailability } from '@capawesome/capacitor-app-update';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { App as CapacitorApp } from '@capacitor/app';
 import { StatusBar } from '@capacitor/status-bar';
@@ -3938,6 +3940,19 @@ export default function App() {
       const initAdMob = async () => {
           if (Capacitor.isNativePlatform()) {
               try {
+                  const updateInfo = await AppUpdate.getAppUpdateInfo();
+                  if (updateInfo.updateAvailability === AppUpdateAvailability.UPDATE_AVAILABLE) {
+                      if (updateInfo.immediateUpdateAllowed) {
+                          await AppUpdate.performImmediateUpdate();
+                      } else if (updateInfo.flexibleUpdateAllowed) {
+                          await AppUpdate.startFlexibleUpdate();
+                      }
+                  }
+              } catch(e) {
+                  console.error('Update check failed', e);
+              }
+              
+              try {
                   await FirebaseAnalytics.initializeFirebase({} as any);
                   FirebaseAnalytics.setCollectionEnabled({ enabled: true });
                   FirebaseAnalytics.logEvent({ name: 'app_open', params: {} });
@@ -3959,13 +3974,23 @@ export default function App() {
                   await AdMob.prepareInterstitial({
                       adId: 'ca-app-pub-5852253821474846/4427465246',
                   });
+
+                  // Show Banner Ad
+                  await AdMob.showBanner({
+                      adId: 'ca-app-pub-5852253821474846/1283744770',
+                      adSize: BannerAdSize.BANNER,
+                      position: BannerAdPosition.BOTTOM_CENTER,
+                      margin: 0,
+                  });
               } catch (e) {
                   console.error('Failed to initialize AdMob', e);
               }
           }
       };
       initAdMob();
+  }, []);
 
+  useEffect(() => {
       const backButtonListener = CapacitorApp.addListener('backButton', ({ canGoBack }) => {
           if (showQuitConfirm) {
               setShowQuitConfirm(false);
@@ -4013,12 +4038,16 @@ export default function App() {
       }
       setCoins(prev => prev + claimedReward);
       
+      if (nextLevel % 5 === 0 && Capacitor.isNativePlatform()) {
+          AppReview.requestReview().catch(e => console.error('AppReview Error:', e));
+      }
+
       setCurrentLevel(nextLevel);
       setScreen('levels');
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[#030712] text-slate-200 font-sans selection:bg-[#00ffff]/30 flex flex-col items-center justify-start pt-10 md:justify-center md:pt-4 p-4 overflow-x-hidden relative">
+    <div className={`min-h-[100dvh] bg-[#030712] text-slate-200 font-sans selection:bg-[#00ffff]/30 flex flex-col items-center justify-start pt-10 md:justify-center md:pt-4 p-4 overflow-x-hidden relative ${Capacitor.isNativePlatform() ? 'pb-[60px]' : ''}`}>
       {/* Dynamic Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden flex items-center justify-center -z-10">
            <div className="absolute top-0 left-0 w-[800px] h-[800px] bg-[#00ffff]/[0.03] rounded-full blur-[150px] mix-blend-screen" />
