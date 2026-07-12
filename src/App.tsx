@@ -1762,7 +1762,7 @@ function GameScreen({
   };
 
   return (
-    <div className={`fixed inset-0 w-full h-full flex flex-col overflow-hidden select-none pb-[50px]`}>
+    <div className={`fixed inset-0 w-full h-full flex flex-col overflow-hidden select-none ${Capacitor.isNativePlatform() ? 'pb-[50px]' : ''}`}>
         <img 
             src={menuBgImg} 
             alt="Game Background"
@@ -3035,7 +3035,7 @@ function LevelsScreen({
         <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className={`fixed inset-0 w-full h-full flex flex-col items-center z-20 pt-[60px] px-4 pb-[80px]`}
+            className={`fixed inset-0 w-full h-full flex flex-col items-center z-20 pt-[60px] px-4 ${Capacitor.isNativePlatform() ? 'pb-[80px]' : 'pb-8'}`}
         >
              {/* Back Button Overlay */}
              <div className="absolute top-6 left-6 z-30">
@@ -3335,7 +3335,7 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className={`fixed inset-0 w-full h-full flex flex-col z-20 bg-[#02050a] pb-[50px]`}
+            className={`fixed inset-0 w-full h-full flex flex-col z-20 bg-[#02050a] ${Capacitor.isNativePlatform() ? 'pb-[50px]' : ''}`}
         >
             {isWatchingAd && (
                  <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 backdrop-blur-md">
@@ -3566,7 +3566,7 @@ function SettingsScreen({ onBack }: { onBack: () => void }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className={`fixed inset-0 w-full h-full flex flex-col items-center justify-center bg-[#02050a] z-50 p-6 pb-[74px]`}
+            className={`fixed inset-0 w-full h-full flex flex-col items-center justify-center bg-[#02050a] z-50 p-6 ${Capacitor.isNativePlatform() ? 'pb-[74px]' : ''}`}
         >
              {/* Cyber Backdrop */}
              <div className="absolute inset-0 opacity-[0.05] pointer-events-none overflow-hidden">
@@ -4047,7 +4047,7 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-[100dvh] bg-[#030712] text-slate-200 font-sans selection:bg-[#00ffff]/30 flex flex-col items-center justify-start pt-10 md:justify-center md:pt-4 p-4 overflow-x-hidden relative pb-[60px]`}>
+    <div className={`min-h-[100dvh] bg-[#030712] text-slate-200 font-sans selection:bg-[#00ffff]/30 flex flex-col items-center justify-start pt-10 md:justify-center md:pt-4 p-4 overflow-x-hidden relative ${Capacitor.isNativePlatform() ? 'pb-[50px]' : ''}`}>
       {/* Dynamic Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden flex items-center justify-center -z-10">
            <div className="absolute top-0 left-0 w-[800px] h-[800px] bg-[#00ffff]/[0.03] rounded-full blur-[150px] mix-blend-screen" />
