@@ -9,7 +9,7 @@ import {
     Play, RotateCcw, Undo2, CheckCircle2, ChevronRight, ChevronsRight, 
     ShoppingCart, Settings, Lock, Star, Coins, Hammer, Shuffle, Ghost, PlusCircle, ArrowLeft, Eye, ArrowRight, Heart, Video, Timer, Hand, ChevronsDown,
     MoveHorizontal, MoveVertical, Move, RotateCw
-} from 'lucide-react';
+, Zap, Lock } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { FirebaseAnalytics } from '@capacitor-community/firebase-analytics';
 import { AdMob, RewardAdOptions, AdLoadInfo, RewardAdPluginEvents, BannerAdOptions, BannerAdSize, BannerAdPosition } from '@capacitor-community/admob';
@@ -18,6 +18,7 @@ import { AppUpdate, AppUpdateAvailability } from '@capawesome/capacitor-app-upda
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { App as CapacitorApp } from '@capacitor/app';
 import { StatusBar } from '@capacitor/status-bar';
+import { NativePurchases, PURCHASE_TYPE } from '@capgo/native-purchases';
 import splashImg from './assets/splash.png';
 import menuBgImg from './assets/menu_bg.png';
 import shopBgImg from './assets/menu_bg.png'; // Using menu_bg as fallback since shop_bg was deleted
@@ -1017,7 +1018,8 @@ const SuccessScreen = ({
     };
 
     const proceedToNext = async () => {
-        if (Capacitor.isNativePlatform() && (levelIndex + 1) % 2 === 0) {
+        const isAdsRemoved = JSON.parse(localStorage.getItem('neon_slide_progress') || '{}').hasAdsRemoved;
+        if (Capacitor.isNativePlatform() && (levelIndex + 1) % 2 === 0 && !isAdsRemoved) {
             try {
                 await AdMob.showInterstitial();
                 // Preload next interstitial
@@ -3232,7 +3234,7 @@ function LevelsScreen({
     );
 }
 
-function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, powerups, setPowerups, onBack }: { coins: number, lives: number, timeUntilNextLife: number, setCoins: (c: number) => void, setLives: React.Dispatch<React.SetStateAction<number>>, powerups: PowerUpInventory, setPowerups: (p: PowerUpInventory) => void, onBack: () => void }) {
+function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, powerups, setPowerups, hasAdsRemoved, setHasAdsRemoved, onBack }: { coins: number, lives: number, timeUntilNextLife: number, setCoins: (c: number) => void, setLives: React.Dispatch<React.SetStateAction<number>>, powerups: PowerUpInventory, setPowerups: (p: PowerUpInventory) => void, hasAdsRemoved: boolean, setHasAdsRemoved: (v: boolean) => void, onBack: () => void }) {
     const POWERUP_COST = 30;
     const [isWatchingAd, setIsWatchingAd] = useState(false);
 
@@ -3243,6 +3245,106 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
         { id: 'ghost', name: 'GHOST', icon: Ghost, desc: 'Move through blocks', color: '#d400ff' },
         { id: 'undo', name: 'UNDO', icon: Undo2, desc: 'Go back one move', color: '#00ffff' },
     ];
+
+    const bundles = [
+        { id: 'bundle_starter', name: 'Starter Pack', coins: 2500, powerups: 1, noAds: true, color: '#ffaa00', glow: 'rgba(255,170,0,0.5)', borderColor: 'border-[#ffaa00]' },
+        { id: 'bundle_pocket', name: 'Pocket Bundle', coins: 1500, powerups: 0, specificPowerup: 'hammer', noAds: false, color: '#00ffff', glow: 'rgba(0,255,255,0.5)', borderColor: 'border-[#00ffff]' },
+        { id: 'bundle_small', name: 'Small Bundle', coins: 3000, powerups: 0, specificPowerups: ['hammer', 'moveBoost'], noAds: false, color: '#00ffff', glow: 'rgba(0,255,255,0.5)', borderColor: 'border-[#00ffff]' },
+        { id: 'bundle_big', name: 'Big Bundle', coins: 8000, powerups: 2, noAds: true, color: '#ff5e5e', glow: 'rgba(255,94,94,0.5)', borderColor: 'border-[#ff5e5e]' },
+        { id: 'bundle_giant', name: 'Giant Bundle', coins: 22000, powerups: 4, noAds: true, color: '#ff00ff', glow: 'rgba(255,0,255,0.5)', borderColor: 'border-[#ff00ff]' },
+        { id: 'bundle_extra_large', name: 'Extra Large Bundle', coins: 50000, powerups: 7, noAds: true, color: '#d400ff', glow: 'rgba(212,0,255,0.5)', borderColor: 'border-[#d400ff]' },
+    ];
+
+    const coinPacks = [
+        { id: 'coins_1000', coins: 1000 },
+        { id: 'coins_5000', coins: 5000 },
+        { id: 'coins_10000', coins: 10000 },
+        { id: 'coins_25000', coins: 25000 },
+        { id: 'coins_50000', coins: 50000 },
+        { id: 'coins_100000', coins: 100000 },
+    ];
+
+    const handleBundlePurchase = async (bundle: any) => {
+        if (Capacitor.isNativePlatform()) {
+            try {
+                const res = await NativePurchases.purchaseProduct({
+                    productIdentifier: bundle.id,
+                    productType: PURCHASE_TYPE.INAPP
+                });
+                
+                if (res) {
+                    let newPowerups = { ...powerups };
+                    if (bundle.powerups > 0) {
+                        newPowerups = {
+                            hammer: powerups.hammer + bundle.powerups,
+                            moveBoost: powerups.moveBoost + bundle.powerups,
+                            shuffle: powerups.shuffle + bundle.powerups,
+                            ghost: powerups.ghost + bundle.powerups,
+                            undo: powerups.undo + bundle.powerups,
+                        };
+                    } else if (bundle.specificPowerup) {
+                        newPowerups[bundle.specificPowerup as PowerUpType] += 1;
+                    } else if (bundle.specificPowerups) {
+                        bundle.specificPowerups.forEach((p: PowerUpType) => {
+                            newPowerups[p] += 1;
+                        });
+                    }
+
+                    const newCoins = coins + bundle.coins;
+                    setCoins(newCoins);
+                    setPowerups(newPowerups);
+                    
+                    if (bundle.noAds && !hasAdsRemoved) {
+                        setHasAdsRemoved(true);
+                        try {
+                            await AdMob.hideBanner();
+                            await AdMob.removeBanner();
+                        } catch (e) {}
+                    }
+                    
+                    audio.playWin();
+                    const saved = JSON.parse(localStorage.getItem('neon_slide_progress') || '{}');
+                    localStorage.setItem('neon_slide_progress', JSON.stringify({ 
+                        ...saved, 
+                        coins: newCoins,
+                        powerups: newPowerups,
+                        hasAdsRemoved: bundle.noAds ? true : saved.hasAdsRemoved
+                    }));
+                    
+                    if (res.purchaseToken) {
+                        await NativePurchases.consumePurchase({ purchaseToken: res.purchaseToken });
+                    }
+                }
+            } catch(e) {
+                console.error(e);
+                audio.playError();
+            }
+        }
+    };
+
+    const handleCoinPurchase = async (pack: any) => {
+        if (Capacitor.isNativePlatform()) {
+            try {
+                const res = await NativePurchases.purchaseProduct({
+                    productIdentifier: pack.id,
+                    productType: PURCHASE_TYPE.INAPP
+                });
+                if (res) {
+                    setCoins(coins + pack.coins);
+                    audio.playWin();
+                    const saved = JSON.parse(localStorage.getItem('neon_slide_progress') || '{}');
+                    localStorage.setItem('neon_slide_progress', JSON.stringify({ ...saved, coins: coins + pack.coins }));
+                    
+                    if (res.purchaseToken) {
+                        await NativePurchases.consumePurchase({ purchaseToken: res.purchaseToken });
+                    }
+                }
+            } catch(e) {
+                console.error(e);
+                audio.playError();
+            }
+        }
+    };
 
     const buyItem = (id: PowerUpType) => {
         if (coins >= POWERUP_COST) {
@@ -3327,6 +3429,30 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
                     lives: Math.min(5, lives + 1)
                 }));
             }, 3000);
+        }
+    };
+
+    const buyRemoveAds = async () => {
+        if (Capacitor.isNativePlatform()) {
+            try {
+                const result = await NativePurchases.purchaseProduct({
+                    productIdentifier: 'remove_ads',
+                    productType: PURCHASE_TYPE.INAPP
+                });
+                if (result) {
+                    setHasAdsRemoved(true);
+                    const saved = JSON.parse(localStorage.getItem('neon_slide_progress') || '{}');
+                    localStorage.setItem('neon_slide_progress', JSON.stringify({ ...saved, hasAdsRemoved: true }));
+                    try {
+                        await AdMob.hideBanner();
+                        await AdMob.removeBanner();
+                    } catch (e) {}
+                    audio.playWin();
+                }
+            } catch(e) {
+                console.error('Purchase Failed', e);
+                audio.playError();
+            }
         }
     };
 
@@ -3473,6 +3599,130 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
                                  {lives >= 5 ? 'FULL' : 'WATCH'}
                              </button>
                          </div>
+                     </div>
+                 </div>
+
+                 {/* Premium Section */}
+                 {!hasAdsRemoved && (
+                     <div className="flex flex-col gap-4 mb-6 relative w-full">
+                         <div className="absolute inset-0 bg-[#d400ff]/5 blur-xl -z-10 rounded-full" />
+                         <div className="flex items-center gap-3">
+                             <Star className="w-5 h-5 text-[#d400ff]" />
+                             <h3 className="text-[#d400ff] font-black tracking-widest uppercase text-sm">Premium</h3>
+                             <div className="h-[1px] flex-1 bg-gradient-to-r from-[#d400ff]/50 to-transparent" />
+                         </div>
+
+                         <div className="bg-[#050b14]/80 p-4 border border-[#d400ff]/20 hover:border-[#d400ff]/50 transition-colors flex justify-between items-center relative overflow-hidden group">
+                             <div className="absolute inset-0 bg-[#d400ff]/5 group-hover:bg-[#d400ff]/10 transition-colors" />
+                             <div className="flex items-center gap-3 relative z-10">
+                                 <div className="w-10 h-10 rounded-lg bg-black/60 border border-[#d400ff]/40 flex items-center justify-center shadow-[0_0_15px_rgba(212,0,255,0.3)]">
+                                     <Lock className="w-5 h-5 text-[#d400ff]" />
+                                 </div>
+                                 <div className="flex flex-col">
+                                     <span className="font-black text-white tracking-widest text-sm">NO ADS</span>
+                                     <span className="text-[10px] text-white/50 tracking-wider">Permanent Removal</span>
+                                 </div>
+                             </div>
+                             
+                             <button 
+                                 onClick={buyRemoveAds}
+                                 className="relative z-10 px-4 py-2 border border-[#d400ff] text-[#d400ff] bg-[#d400ff]/10 hover:bg-[#d400ff]/20 hover:shadow-[0_0_15px_rgba(212,0,255,0.3)] rounded font-black text-xs tracking-widest flex items-center gap-2 active:scale-95 transition-all"
+                             >
+                                 BUY
+                             </button>
+                         </div>
+                     </div>
+                 )}
+
+                 {/* Bundles Section */}
+                 <div className="flex flex-col gap-4 mb-6 relative w-full">
+                     <div className="absolute inset-0 bg-[#00ffff]/5 blur-xl -z-10 rounded-full" />
+                     <div className="flex items-center gap-3">
+                         <Star className="w-5 h-5 text-[#00ffff]" />
+                         <h3 className="text-[#00ffff] font-black tracking-widest uppercase text-sm">Bundles</h3>
+                         <div className="h-[1px] flex-1 bg-gradient-to-r from-[#00ffff]/50 to-transparent" />
+                     </div>
+
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
+                         {bundles.map(bundle => (
+                             <div key={bundle.id} 
+                                  className={`bg-[#050b14]/90 p-4 border rounded-xl flex flex-col items-center justify-between relative overflow-hidden group transition-all`}
+                                  style={{ borderColor: bundle.color, boxShadow: `0 0 15px ${bundle.glow}` }}>
+                                 <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity" style={{ backgroundColor: bundle.color }} />
+                                 <div className="flex flex-col items-center z-10 w-full">
+                                     <span className="font-black text-white tracking-widest text-sm mb-2" style={{ textShadow: `0 0 10px ${bundle.color}` }}>{bundle.name}</span>
+                                     <div className="flex flex-wrap justify-center gap-2 mb-3">
+                                         <div className="flex items-center gap-1 bg-black/60 px-2 py-1 rounded border border-white/10">
+                                             <Coins className="w-3 h-3 text-[#ffaa00]" />
+                                             <span className="text-xs font-mono text-white">{bundle.coins.toLocaleString()}</span>
+                                         </div>
+                                         {bundle.powerups > 0 && (
+                                            <div className="flex items-center gap-1 bg-black/60 px-2 py-1 rounded border border-white/10">
+                                                <Zap className="w-3 h-3 text-[#00ffff]" />
+                                                <span className="text-xs font-mono text-white">x{bundle.powerups} All Power-Ups</span>
+                                            </div>
+                                         )}
+                                         {bundle.specificPowerup && (
+                                             <div className="flex items-center gap-1 bg-black/60 px-2 py-1 rounded border border-white/10">
+                                                 <Hammer className="w-3 h-3 text-[#ff5e5e]" />
+                                                 <span className="text-xs font-mono text-white">+1 Hammer</span>
+                                             </div>
+                                         )}
+                                         {bundle.specificPowerups && bundle.specificPowerups.length > 0 && (
+                                             <div className="flex items-center gap-1 bg-black/60 px-2 py-1 rounded border border-white/10">
+                                                 <Hammer className="w-3 h-3 text-[#ff5e5e]" />
+                                                 <span className="text-xs font-mono text-white">+ Hammer & Boost</span>
+                                             </div>
+                                         )}
+                                         {bundle.noAds && (
+                                             <div className="flex items-center gap-1 bg-black/60 px-2 py-1 rounded border border-white/10">
+                                                 <Lock className="w-3 h-3 text-[#d400ff]" />
+                                                 <span className="text-xs font-mono text-white">No Ads</span>
+                                             </div>
+                                         )}
+                                     </div>
+                                 </div>
+                                 <button 
+                                     onClick={() => handleBundlePurchase(bundle)}
+                                     className="relative z-10 w-full px-2 py-2 border rounded font-black text-xs tracking-widest flex items-center justify-center active:scale-95 transition-all text-white hover:bg-white/10"
+                                     style={{ borderColor: bundle.color, backgroundColor: `${bundle.color}33`, textShadow: `0 0 5px ${bundle.color}` }}
+                                 >
+                                     BUY NOW
+                                 </button>
+                             </div>
+                         ))}
+                     </div>
+                 </div>
+
+                 {/* Coin Packages Section */}
+                 <div className="flex flex-col gap-4 mb-6 relative w-full">
+                     <div className="absolute inset-0 bg-[#ffaa00]/5 blur-xl -z-10 rounded-full" />
+                     <div className="flex items-center gap-3">
+                         <Coins className="w-5 h-5 text-[#ffaa00]" />
+                         <h3 className="text-[#ffaa00] font-black tracking-widest uppercase text-sm">Coin Packs</h3>
+                         <div className="h-[1px] flex-1 bg-gradient-to-r from-[#ffaa00]/50 to-transparent" />
+                     </div>
+
+                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 w-full">
+                         {coinPacks.map(pack => (
+                             <div key={pack.id} className="bg-[#050b14]/90 p-3 border border-[#ffaa00] shadow-[0_0_15px_rgba(255,170,0,0.3)] rounded-xl flex flex-col items-center justify-between relative overflow-hidden group hover:shadow-[0_0_25px_rgba(255,170,0,0.5)] transition-all">
+                                 <div className="absolute inset-0 bg-[#ffaa00]/10 group-hover:bg-[#ffaa00]/20 transition-colors" />
+                                 <div className="w-14 h-14 rounded-full bg-black/60 border border-[#ffaa00]/50 flex items-center justify-center shadow-[0_0_15px_rgba(255,170,0,0.4)] mb-2 relative z-10 overflow-hidden">
+                                     <div className="absolute inset-0 bg-[#ffaa00]/20 animate-pulse" />
+                                     <Coins className="w-8 h-8 text-[#ffaa00] relative z-10 drop-shadow-[0_0_8px_rgba(255,170,0,0.8)]" />
+                                 </div>
+                                 <span className="font-black text-white tracking-widest text-[13px] relative z-10 mb-1" style={{ textShadow: `0 0 10px #ffaa00` }}>{pack.coins.toLocaleString()}</span>
+                                 <span className="text-[#ffaa00] font-mono text-[10px] relative z-10 mb-2">COINS</span>
+                                 
+                                 <button 
+                                     onClick={() => handleCoinPurchase(pack)}
+                                     className="relative z-10 w-full px-2 py-1.5 border border-[#ffaa00] text-white bg-[#ffaa00]/30 hover:bg-[#ffaa00]/50 hover:shadow-[0_0_15px_rgba(255,170,0,0.5)] rounded font-black text-[11px] tracking-widest flex items-center justify-center mt-auto active:scale-95 transition-all"
+                                     style={{ textShadow: `0 0 5px #ffaa00` }}
+                                 >
+                                     BUY
+                                 </button>
+                             </div>
+                         ))}
                      </div>
                  </div>
 
@@ -3771,6 +4021,16 @@ interface PowerUpInventory {
 export default function App() {
   const [screen, setScreen] = useState<'splash' | 'menu' | 'levels' | 'game' | 'shop' | 'settings'>('splash');
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
+  const [hasAdsRemoved, setHasAdsRemoved] = useState<boolean>(() => {
+      const saved = localStorage.getItem('neon_slide_progress');
+      if (saved) {
+          try {
+              const data = JSON.parse(saved);
+              return data.hasAdsRemoved || false;
+          } catch(e) {}
+      }
+      return false;
+  });
   const [unlockedLevel, setUnlockedLevel] = useState<number>(() => {
       const saved = localStorage.getItem('neon_slide_progress');
       if (saved) {
@@ -3952,6 +4212,20 @@ export default function App() {
                   console.error('Update check failed', e);
               }
               
+              // Check In-App Purchases
+              let isAdsRemoved = hasAdsRemoved;
+              try {
+                  const { purchases } = await NativePurchases.getPurchases();
+                  if (purchases && purchases.some((p: any) => p.productIdentifier === 'remove_ads')) {
+                      isAdsRemoved = true;
+                      setHasAdsRemoved(true);
+                      const saved = JSON.parse(localStorage.getItem('neon_slide_progress') || '{}');
+                      localStorage.setItem('neon_slide_progress', JSON.stringify({ ...saved, hasAdsRemoved: true }));
+                  }
+              } catch (e) {
+                  console.error('Restore purchases failed', e);
+              }
+
               try {
                   await FirebaseAnalytics.initializeFirebase({} as any);
                   FirebaseAnalytics.setCollectionEnabled({ enabled: true });
@@ -3967,21 +4241,29 @@ export default function App() {
                   });
                   console.log('AdMob initialized');
                   
-                  // Preload ads
+                  // Preload reward ads (always allowed for rewards)
                   await AdMob.prepareRewardVideoAd({
                       adId: 'ca-app-pub-5852253821474846/9830775670',
                   });
-                  await AdMob.prepareInterstitial({
-                      adId: 'ca-app-pub-5852253821474846/4427465246',
-                  });
 
-                  // Show Banner Ad
-                  await AdMob.showBanner({
-                      adId: 'ca-app-pub-5852253821474846/1283744770',
-                      adSize: BannerAdSize.BANNER,
-                      position: BannerAdPosition.BOTTOM_CENTER,
-                      margin: 0,
-                  });
+                  if (!isAdsRemoved) {
+                      await AdMob.prepareInterstitial({
+                          adId: 'ca-app-pub-5852253821474846/4427465246',
+                      });
+
+                      // Show Banner Ad
+                      await AdMob.showBanner({
+                          adId: 'ca-app-pub-5852253821474846/1283744770',
+                          adSize: BannerAdSize.BANNER,
+                          position: BannerAdPosition.BOTTOM_CENTER,
+                          margin: 0,
+                      });
+                  } else {
+                      try {
+                          await AdMob.hideBanner();
+                          await AdMob.removeBanner();
+                      } catch (e) {}
+                  }
               } catch (e) {
                   console.error('Failed to initialize AdMob', e);
               }
@@ -4102,6 +4384,8 @@ export default function App() {
           setLives={setLives}
           powerups={powerups}
           setPowerups={setPowerups}
+          hasAdsRemoved={hasAdsRemoved}
+          setHasAdsRemoved={setHasAdsRemoved}
           onBack={() => setScreen('menu')} 
         />}
       {screen === 'settings' && <SettingsScreen onBack={() => setScreen('menu')} />}
