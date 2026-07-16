@@ -2462,15 +2462,34 @@ function GameScreen({
                     initial={{ opacity: 0 }} 
                     animate={{ opacity: 1 }} 
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[240] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
+                    className="fixed inset-0 z-[240] bg-black/95 backdrop-blur-md flex items-center justify-center p-4"
                 >
-                    <div className="relative w-full max-w-[420px] mx-auto flex flex-col items-center justify-center aspect-[3/4.5]"
-                         style={{ backgroundImage: `url('/levelfailed.png')`, backgroundSize: '100% 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
+                    <motion.div 
+                        initial={{ scale: 0.9, opacity: 0, y: 30 }}
+                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                        exit={{ scale: 0.9, opacity: 0, y: 30 }}
+                        transition={{ type: "spring", damping: 25, stiffness: 350 }}
+                        className="relative w-full max-w-[420px] mx-auto flex flex-col items-center justify-center aspect-[3/4.5] border-[3px] border-[#ff3131] rounded-[36px] overflow-hidden shadow-[0_0_40px_rgba(255,49,49,0.9),inset_0_0_20px_rgba(255,49,49,0.4)] bg-[#030712]/95"
+                        style={{ backgroundImage: `url('/levelfailed.png')`, backgroundSize: '100% 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}
+                    >
+                        {/* Neon Corner Accents */}
+                        <div className="absolute top-4 left-4 w-10 h-10 border-t-4 border-l-4 border-[#ff3131] rounded-tl-2xl pointer-events-none animate-pulse drop-shadow-[0_0_10px_#ff3131] z-30" />
+                        <div className="absolute top-4 right-4 w-10 h-10 border-t-4 border-r-4 border-[#ff3131] rounded-tr-2xl pointer-events-none animate-pulse drop-shadow-[0_0_10px_#ff3131] z-30" />
+                        <div className="absolute bottom-4 left-4 w-10 h-10 border-b-4 border-l-4 border-[#ff3131] rounded-bl-2xl pointer-events-none animate-pulse drop-shadow-[0_0_10px_#ff3131] z-30" />
+                        <div className="absolute bottom-4 right-4 w-10 h-10 border-b-4 border-r-4 border-[#ff3131] rounded-br-2xl pointer-events-none animate-pulse drop-shadow-[0_0_10px_#ff3131] z-30" />
+
+                        {/* Top and Bottom Glowing Tech Bars */}
+                        <div className="absolute top-0 left-1/4 right-1/4 h-[4px] bg-gradient-to-r from-transparent via-[#ff3131] to-transparent drop-shadow-[0_0_12px_#ff3131] z-30" />
+                        <div className="absolute bottom-0 left-1/4 right-1/4 h-[4px] bg-gradient-to-r from-transparent via-[#ff3131] to-transparent drop-shadow-[0_0_12px_#ff3131] z-30" />
+
+                        {/* Ambient Neon Backlight Scanline overlay */}
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(255,49,49,0.18)_0%,_transparent_75%)] pointer-events-none mix-blend-screen" />
+                        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,49,49,0.03)_1px,transparent_1px)] bg-[size:100%_4px] pointer-events-none z-10" />
                         
                         {/* Life Status Display */}
                         <div 
                             id="life-status-box"
-                            className="absolute w-full flex flex-col items-center justify-center z-10"
+                            className="absolute w-full flex flex-col items-center justify-center z-20"
                             style={{ top: '52.5%', height: '12%', marginTop: '-30px' }}
                         >
                             <div className="flex items-center gap-[4px] sm:gap-[6px] justify-center w-full">
@@ -2508,7 +2527,7 @@ function GameScreen({
                                 <img src="/mainmenu.png" alt="Main Menu" className="drop-shadow-md" style={{ width: '210px', height: '80px', objectFit: 'contain' }} />
                             </button>
                         </div>
-                    </div>
+                    </motion.div>
                 </motion.div>
             )}
         </AnimatePresence>
