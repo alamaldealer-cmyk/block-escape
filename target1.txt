@@ -1,0 +1,7 @@
+                             <button 
+                                 onClick={buyRemoveAds}
+                                 className="relative z-10 px-4 py-2 border border-[#d400ff] text-[#d400ff] bg-[#d400ff]/10 hover:bg-[#d400ff]/20 hover:shadow-[0_0_15px_rgba(212,0,255,0.3)] rounded font-black text-xs tracking-widest flex items-center gap-2 active:scale-95 transition-all"
+                             >
+                                 BUY
+                             </button>
+                         </div>

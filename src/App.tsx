@@ -9,7 +9,7 @@ import {
     Play, RotateCcw, Undo2, CheckCircle2, ChevronRight, ChevronsRight, 
     ShoppingCart, Settings, Lock, Star, Coins, Hammer, Shuffle, Ghost, PlusCircle, ArrowLeft, Eye, ArrowRight, Heart, Video, Timer, Hand, ChevronsDown,
     MoveHorizontal, MoveVertical, Move, RotateCw
-, Zap, Lock } from 'lucide-react';
+, Zap } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { FirebaseAnalytics } from '@capacitor-community/firebase-analytics';
 import { AdMob, RewardAdOptions, AdLoadInfo, RewardAdPluginEvents, BannerAdOptions, BannerAdSize, BannerAdPosition } from '@capacitor-community/admob';
@@ -23,7 +23,6 @@ import splashImg from './assets/splash.png';
 import menuBgImg from './assets/menu_bg.png';
 import shopBgImg from './assets/menu_bg.png'; // Using menu_bg as fallback since shop_bg was deleted
 import logoImg from './assets/logo.png';
-import levelFailedImg from './levelfailed.png';
 import { LEVELS, BlockData, SCREW_LEVELS, ScrewGate } from './levels';
 import { audio } from './audio';
 import { getConstraints, generateLevel, generateScrewLevel, getScrewConstraints } from './generator';
@@ -1748,6 +1747,38 @@ function GameScreen({
       setTimeBonuses([]);
   };
 
+  const handleContinueWithAd = async () => {
+      audio.playTap();
+      
+      const grantReward = () => {
+          setHasFailed(false);
+          setLives(prev => Math.min(5, prev + 1));
+          setTimeLeft(prev => Math.max(prev, 30));
+          setBonusMoves(prev => prev + 5);
+      };
+
+      if (Capacitor.isNativePlatform()) {
+          try {
+              setIsWatchingAd(true);
+              await AdMob.showRewardVideoAd();
+              grantReward();
+              AdMob.prepareRewardVideoAd({
+                  adId: 'ca-app-pub-5852253821474846/9830775670',
+              }).catch(() => {});
+          } catch (e) {
+              console.error('AdMob Reward Error:', e);
+          } finally {
+              setIsWatchingAd(false);
+          }
+      } else {
+          setIsWatchingAd(true);
+          setTimeout(() => {
+              grantReward();
+              setIsWatchingAd(false);
+          }, 1000);
+      }
+  };
+
   const handleRestartClick = () => {
       if (hasFailed) {
           handleRestart();
@@ -2431,47 +2462,52 @@ function GameScreen({
                     initial={{ opacity: 0 }} 
                     animate={{ opacity: 1 }} 
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[240] bg-black flex items-center justify-center"
+                    className="fixed inset-0 z-[240] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
                 >
-                    <div className="relative w-full h-full max-w-[500px] mx-auto flex flex-col items-center justify-center">
-                        {/* Background Image */}
-                        <img 
-                            src={levelFailedImg} 
-                            alt="Level Failed Background" 
-                            className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-                        />
+                    <div className="relative w-full max-w-[420px] mx-auto flex flex-col items-center justify-center aspect-[3/4.5]"
+                         style={{ backgroundImage: `url('/levelfailed.png')`, backgroundSize: '100% 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
                         
-                        {/* Life Status Display in the empty space */}
+                        {/* Life Status Display */}
                         <div 
                             id="life-status-box"
-                            className="absolute w-full flex justify-center z-10"
-                            style={{ top: '48%', marginTop: '0px' }}
+                            className="absolute w-full flex flex-col items-center justify-center z-10"
+                            style={{ top: '52.5%', height: '12%', marginTop: '-30px' }}
                         >
-                            <div className="flex flex-col items-center gap-1" style={{ marginTop: '62px', marginLeft: '3px' }}>
-                                <span className="text-white/80 font-black tracking-widest uppercase text-[10px] drop-shadow-md">Life Lost</span>
-                                <div className="flex items-center gap-3 px-4 py-1">
-                                    <Heart className="w-6 h-6 text-[#ff5e5e] animate-pulse drop-shadow-[0_0_10px_rgba(255,94,94,0.8)]" />
-                                    <div className="flex items-center gap-2 text-3xl font-black text-white">
-                                        <span className="text-[#ff5e5e] line-through opacity-70">{lives + 1}</span>
-                                        <ArrowRight className="w-5 h-5 text-white/50" />
-                                        <span className="drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">{lives}</span>
-                                    </div>
-                                </div>
+                            <div className="flex items-center gap-[4px] sm:gap-[6px] justify-center w-full">
+                                {[...Array(5)].map((_, i) => (
+                                    <Heart 
+                                        key={i} 
+                                        className={`w-7 h-7 sm:w-8 sm:h-8 transition-all ${i < lives ? 'text-[#ff5e5e] fill-[#ff5e5e] drop-shadow-[0_0_8px_rgba(255,94,94,0.8)]' : 'text-white/10 fill-black/60'}`} 
+                                    />
+                                ))}
+                            </div>
+                            
+                            <div className="mt-2 text-[#4db8ff] font-bold tracking-widest text-[11px] sm:text-[13px] uppercase drop-shadow-sm">
+                                {lives} LIVES REMAINING
                             </div>
                         </div>
                         
-                        {/* Invisible clickable button areas overlaid on the image */}
-                        <button 
-                            onClick={handleRestart}
-                            className="absolute w-[70%] h-[60px] top-[60%] mt-[65px] left-[15%] rounded-2xl z-20 outline-none [-webkit-tap-highlight-color:transparent]"
-                            aria-label="Retry Level"
-                        />
-                        
-                        <button 
-                            onClick={onBack}
-                            className="absolute w-[70%] h-[45px] top-[75%] mt-[37px] left-[15%] rounded-2xl z-20 outline-none [-webkit-tap-highlight-color:transparent]"
-                            aria-label="Go Back to Menu"
-                        />
+                        <div className="absolute w-full flex flex-col justify-start items-center z-20" style={{ top: '63%', height: '32%', gap: '4%' }}>
+                            <button 
+                                onClick={handleContinueWithAd}
+                                className="w-[74%] max-w-[300px] hover:scale-105 active:scale-95 transition-transform flex justify-center items-center"
+                                disabled={isWatchingAd}
+                            >
+                                <img src="/continue.png" alt="Continue" className="drop-shadow-md" style={{ width: '220px', height: '80px', objectFit: 'contain' }} />
+                            </button>
+                            <button 
+                                onClick={handleRestart}
+                                className="w-[74%] max-w-[300px] hover:scale-105 active:scale-95 transition-transform flex justify-center items-center"
+                            >
+                                <img src="/tryagain.png" alt="Try Again" className="drop-shadow-md" style={{ width: '210px', height: '80px', objectFit: 'contain' }} />
+                            </button>
+                            <button 
+                                onClick={onBack}
+                                className="w-[74%] max-w-[300px] hover:scale-105 active:scale-95 transition-transform flex justify-center items-center"
+                            >
+                                <img src="/mainmenu.png" alt="Main Menu" className="drop-shadow-md" style={{ width: '210px', height: '80px', objectFit: 'contain' }} />
+                            </button>
+                        </div>
                     </div>
                 </motion.div>
             )}
@@ -3235,8 +3271,9 @@ function LevelsScreen({
 }
 
 function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, powerups, setPowerups, hasAdsRemoved, setHasAdsRemoved, onBack }: { coins: number, lives: number, timeUntilNextLife: number, setCoins: (c: number) => void, setLives: React.Dispatch<React.SetStateAction<number>>, powerups: PowerUpInventory, setPowerups: (p: PowerUpInventory) => void, hasAdsRemoved: boolean, setHasAdsRemoved: (v: boolean) => void, onBack: () => void }) {
-    const POWERUP_COST = 30;
+    const POWERUP_COST = 200;
     const [isWatchingAd, setIsWatchingAd] = useState(false);
+    const [prices, setPrices] = useState<Record<string, string>>({});
 
     const items = [
         { id: 'hammer', name: 'HAMMER', icon: Hammer, desc: 'Break any block', color: '#ff5e5e' },
@@ -3263,6 +3300,33 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
         { id: 'coins_50000', coins: 50000 },
         { id: 'coins_100000', coins: 100000 },
     ];
+
+    useEffect(() => {
+        const fetchPrices = async () => {
+            if (Capacitor.isNativePlatform()) {
+                try {
+                    const productIds = [
+                        ...bundles.map(b => b.id),
+                        ...coinPacks.map(p => p.id),
+                        'remove_ads'
+                    ];
+                    const res = await NativePurchases.getProducts({
+                        productIdentifiers: productIds
+                    });
+                    if (res && res.products) {
+                        const priceMap: Record<string, string> = {};
+                        res.products.forEach((p: any) => {
+                            priceMap[p.identifier] = p.priceString || `${p.price} ${p.currencyCode}`;
+                        });
+                        setPrices(priceMap);
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch product prices", e);
+                }
+            }
+        };
+        fetchPrices();
+    }, []);
 
     const handleBundlePurchase = async (bundle: any) => {
         if (Capacitor.isNativePlatform()) {
@@ -3625,11 +3689,12 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
                              </div>
                              
                              <button 
-                                 onClick={buyRemoveAds}
-                                 className="relative z-10 px-4 py-2 border border-[#d400ff] text-[#d400ff] bg-[#d400ff]/10 hover:bg-[#d400ff]/20 hover:shadow-[0_0_15px_rgba(212,0,255,0.3)] rounded font-black text-xs tracking-widest flex items-center gap-2 active:scale-95 transition-all"
-                             >
-                                 BUY
-                             </button>
+                                onClick={buyRemoveAds}
+                                className="relative z-10 w-28 h-10 text-white font-black text-sm tracking-widest flex items-center justify-center active:scale-95 transition-all drop-shadow-[0_0_8px_rgba(212,0,255,0.6)]"
+                                style={{ backgroundImage: `url('/buybutton.png')`, backgroundSize: '100% 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
+                            >
+                                {prices['remove_ads'] || 'BUY'}
+                            </button>
                          </div>
                      </div>
                  )}
@@ -3646,9 +3711,9 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
                          {bundles.map(bundle => (
                              <div key={bundle.id} 
-                                  className={`bg-[#050b14]/90 p-4 border rounded-xl flex flex-col items-center justify-between relative overflow-hidden group transition-all`}
-                                  style={{ borderColor: bundle.color, boxShadow: `0 0 15px ${bundle.glow}` }}>
-                                 <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity" style={{ backgroundColor: bundle.color }} />
+                                 className={`p-6 flex flex-col items-center justify-between relative group transition-all`}
+                                 style={{ backgroundImage: `url('/inappbundlebackground.png')`, backgroundSize: '100% 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', minHeight: '180px' }}>
+                                 
                                  <div className="flex flex-col items-center z-10 w-full">
                                      <span className="font-black text-white tracking-widest text-sm mb-2" style={{ textShadow: `0 0 10px ${bundle.color}` }}>{bundle.name}</span>
                                      <div className="flex flex-wrap justify-center gap-2 mb-3">
@@ -3684,10 +3749,10 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
                                  </div>
                                  <button 
                                      onClick={() => handleBundlePurchase(bundle)}
-                                     className="relative z-10 w-full px-2 py-2 border rounded font-black text-xs tracking-widest flex items-center justify-center active:scale-95 transition-all text-white hover:bg-white/10"
-                                     style={{ borderColor: bundle.color, backgroundColor: `${bundle.color}33`, textShadow: `0 0 5px ${bundle.color}` }}
+                                     className="relative z-10 w-[150px] h-11 text-white font-black text-sm tracking-widest flex items-center justify-center active:scale-95 transition-all"
+                                     style={{ backgroundImage: `url('/buybutton.png')`, backgroundSize: '100% 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
                                  >
-                                     BUY NOW
+                                     {prices[bundle.id] || 'BUY NOW'}
                                  </button>
                              </div>
                          ))}
@@ -3705,22 +3770,29 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
 
                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 w-full">
                          {coinPacks.map(pack => (
-                             <div key={pack.id} className="bg-[#050b14]/90 p-3 border border-[#ffaa00] shadow-[0_0_15px_rgba(255,170,0,0.3)] rounded-xl flex flex-col items-center justify-between relative overflow-hidden group hover:shadow-[0_0_25px_rgba(255,170,0,0.5)] transition-all">
-                                 <div className="absolute inset-0 bg-[#ffaa00]/10 group-hover:bg-[#ffaa00]/20 transition-colors" />
-                                 <div className="w-14 h-14 rounded-full bg-black/60 border border-[#ffaa00]/50 flex items-center justify-center shadow-[0_0_15px_rgba(255,170,0,0.4)] mb-2 relative z-10 overflow-hidden">
+                             <div key={pack.id} className="p-3 py-4 flex flex-col items-center justify-between relative transition-all aspect-square"
+                                 style={{ backgroundImage: `url('/inappcoinbackground.png')`, backgroundSize: '100% 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
+                                 <div className="w-10 h-10 rounded-full bg-[#0a0500]/80 border-2 border-[#ffaa00] flex items-center justify-center shadow-[0_0_15px_rgba(255,170,0,0.5)] mt-2 relative z-10 overflow-hidden">
                                      <div className="absolute inset-0 bg-[#ffaa00]/20 animate-pulse" />
-                                     <Coins className="w-8 h-8 text-[#ffaa00] relative z-10 drop-shadow-[0_0_8px_rgba(255,170,0,0.8)]" />
+                                     <Coins className="w-5 h-5 text-[#ffaa00] relative z-10 drop-shadow-[0_0_5px_rgba(255,170,0,1)]" />
                                  </div>
-                                 <span className="font-black text-white tracking-widest text-[13px] relative z-10 mb-1" style={{ textShadow: `0 0 10px #ffaa00` }}>{pack.coins.toLocaleString()}</span>
-                                 <span className="text-[#ffaa00] font-mono text-[10px] relative z-10 mb-2">COINS</span>
+                                 
+                                 <div className="flex flex-col items-center z-10 my-1">
+                                     <span className="font-black text-[#fff2d4] tracking-widest text-[22px] relative z-10 leading-none" style={{ textShadow: `0 0 10px #ffaa00` }}>{pack.coins.toLocaleString()}</span>
+                                     <div className="flex items-center gap-2 mt-2">
+                                         <div className="h-[1px] w-4 bg-[#ffaa00]/60" />
+                                         <span className="text-[#ffaa00] font-bold tracking-widest text-[10px] relative z-10 leading-none">COINS</span>
+                                         <div className="h-[1px] w-4 bg-[#ffaa00]/60" />
+                                     </div>
+                                 </div>
                                  
                                  <button 
-                                     onClick={() => handleCoinPurchase(pack)}
-                                     className="relative z-10 w-full px-2 py-1.5 border border-[#ffaa00] text-white bg-[#ffaa00]/30 hover:bg-[#ffaa00]/50 hover:shadow-[0_0_15px_rgba(255,170,0,0.5)] rounded font-black text-[11px] tracking-widest flex items-center justify-center mt-auto active:scale-95 transition-all"
-                                     style={{ textShadow: `0 0 5px #ffaa00` }}
-                                 >
-                                     BUY
-                                 </button>
+                                    onClick={() => handleCoinPurchase(pack)}
+                                    className="relative z-10 w-[110px] h-[36px] text-white font-black text-sm tracking-widest flex items-center justify-center active:scale-95 transition-all mb-1"
+                                    style={{ backgroundImage: `url('/buybutton.png')`, backgroundSize: '100% 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
+                                >
+                                    {prices[pack.id] || 'BUY'}
+                                </button>
                              </div>
                          ))}
                      </div>
