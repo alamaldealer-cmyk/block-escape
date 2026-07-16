@@ -2506,25 +2506,25 @@ function GameScreen({
                             </div>
                         </div>
                         
-                        <div className="absolute w-full flex flex-col justify-start items-center z-20" style={{ top: '63%', height: '32%', gap: '4%' }}>
+                        <div className="absolute w-full flex flex-col justify-start items-center z-20" style={{ top: '63%', height: '33%', gap: '4%' }}>
                             <button 
                                 onClick={handleContinueWithAd}
-                                className="w-[74%] max-w-[300px] hover:scale-105 active:scale-95 transition-transform flex justify-center items-center"
+                                className="w-[74%] max-w-[300px] h-[28%] hover:scale-105 active:scale-95 transition-transform flex justify-center items-center"
                                 disabled={isWatchingAd}
                             >
-                                <img src="/continue.png" alt="Continue" className="drop-shadow-md" style={{ width: '220px', height: '80px', objectFit: 'contain' }} />
+                                <img src="/continue.png" alt="Continue" className="drop-shadow-md h-full w-auto object-contain" />
                             </button>
                             <button 
                                 onClick={handleRestart}
-                                className="w-[74%] max-w-[300px] hover:scale-105 active:scale-95 transition-transform flex justify-center items-center"
+                                className="w-[74%] max-w-[300px] h-[28%] hover:scale-105 active:scale-95 transition-transform flex justify-center items-center"
                             >
-                                <img src="/tryagain.png" alt="Try Again" className="drop-shadow-md" style={{ width: '210px', height: '80px', objectFit: 'contain' }} />
+                                <img src="/tryagain.png" alt="Try Again" className="drop-shadow-md h-full w-auto object-contain" />
                             </button>
                             <button 
                                 onClick={onBack}
-                                className="w-[74%] max-w-[300px] hover:scale-105 active:scale-95 transition-transform flex justify-center items-center"
+                                className="w-[74%] max-w-[300px] h-[28%] hover:scale-105 active:scale-95 transition-transform flex justify-center items-center"
                             >
-                                <img src="/mainmenu.png" alt="Main Menu" className="drop-shadow-md" style={{ width: '210px', height: '80px', objectFit: 'contain' }} />
+                                <img src="/mainmenu.png" alt="Main Menu" className="drop-shadow-md h-full w-auto object-contain" />
                             </button>
                         </div>
                     </motion.div>
