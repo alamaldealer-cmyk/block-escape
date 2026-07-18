@@ -898,7 +898,7 @@ const MoneyVault = ({ amount, rewardMultiplier, isClaiming, onClaimComplete }: {
                     <div className="relative">
                         <div className="absolute inset-0 bg-[#ffaa00] blur-md opacity-20" />
                         <div className="relative p-2 bg-gradient-to-br from-[#2a2c35] to-[#111318] rounded-xl border border-[#ffaa00]/30 shadow-inner flex items-center justify-center">
-                            <Coins className="w-6 h-6 text-[#ffaa00] drop-shadow-[0_0_5px_rgba(255,170,0,0.8)]" />
+                            <img src="/coinsicon.png" alt="Coins" className="w-6 h-6 object-contain drop-shadow-[0_0_5px_rgba(255,170,0,0.8)]" />
                         </div>
                     </div>
                     
@@ -2429,7 +2429,7 @@ function GameScreen({
                                 className={`group relative w-full h-20 bg-black/40 hover:bg-black/60 border border-[#ffaa00]/20 rounded-2xl flex items-center px-6 transition-all active:scale-[0.98] ${coins < 30 ? 'opacity-20 grayscale' : ''}`}
                             >
                                 <div className="w-12 h-12 bg-[#ffaa00]/10 rounded-xl flex items-center justify-center mr-5 border border-[#ffaa00]/20 group-hover:bg-[#ffaa00]/20 transition-all">
-                                    <Coins className="w-6 h-6 text-[#ffaa00]" />
+                                    <img src="/coinsicon.png" alt="Coins" className="w-6 h-6 object-contain" />
                                 </div>
                                 <div className="flex-1 text-left">
                                     <p className="text-white font-black text-base tracking-tight uppercase leading-none mb-1">Buy Package</p>
@@ -2494,9 +2494,11 @@ function GameScreen({
                         >
                             <div className="flex items-center gap-[4px] sm:gap-[6px] justify-center w-full">
                                 {[...Array(5)].map((_, i) => (
-                                    <Heart 
+                                    <img 
                                         key={i} 
-                                        className={`w-7 h-7 sm:w-8 sm:h-8 transition-all ${i < lives ? 'text-[#ff5e5e] fill-[#ff5e5e] drop-shadow-[0_0_8px_rgba(255,94,94,0.8)]' : 'text-white/10 fill-black/60'}`} 
+                                        src="/lifeicon.png"
+                                        alt="Life"
+                                        className={`w-7 h-7 sm:w-8 sm:h-8 transition-all object-contain ${i < lives ? 'drop-shadow-[0_0_8px_rgba(255,94,94,0.8)]' : 'opacity-20 grayscale'}`} 
                                     />
                                 ))}
                             </div>
@@ -2692,7 +2694,7 @@ function GameScreen({
                             <div className="flex flex-col items-center gap-1 bg-[#ffaa00]/5 border border-[#ffaa00]/20 py-3 px-6 rounded-lg w-full relative overflow-hidden mb-6">
                                 <div className="absolute inset-0 bg-[#ff5e5e]/5" />
                                 <div className="flex items-center gap-2 mb-1 relative z-10">
-                                    <Heart className="w-3.5 h-3.5 text-[#ff5e5e]" />
+                                    <img src="/lifeicon.png" alt="Life" className="w-4 h-4 object-contain" />
                                     <span className="text-white/60 font-black tracking-widest uppercase text-[10px]">Life Cost</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm relative z-10 font-mono mt-1">
@@ -2772,7 +2774,7 @@ function GameScreen({
                             <div className="flex flex-col items-center gap-1 bg-[#ff5e5e]/5 border border-[#ff5e5e]/20 py-3 px-6 rounded-lg w-full relative overflow-hidden mb-6">
                                 <div className="absolute inset-0 bg-[#ff5e5e]/5" />
                                 <div className="flex items-center gap-2 mb-1 relative z-10">
-                                    <Heart className="w-3.5 h-3.5 text-[#ff5e5e]" />
+                                    <img src="/lifeicon.png" alt="Life" className="w-4 h-4 object-contain" />
                                     <span className="text-white/60 font-black tracking-widest uppercase text-[10px]">Life Cost</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm relative z-10 font-mono mt-1">
@@ -2891,120 +2893,78 @@ function MenuScreen({ coins, lives, timeUntilNextLife, onNavigate }: { coins: nu
     return (
         <>
             <img 
-                 src={menuBgImg} 
+                 src="/homepagebackground.png" 
                  alt="Menu Background"
                  className="fixed inset-0 w-full h-full object-cover opacity-100 pointer-events-none z-0"
              />
-            <div className="fixed inset-0 bg-black/20 pointer-events-none z-0" /> {/* Readable text overlay */}
             <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="w-full max-w-[320px] flex flex-col items-stretch gap-10 z-10"
+                className="w-full max-w-[320px] flex flex-col items-center gap-5 z-10"
             >
              <div className="mb-0 flex flex-col items-center">
                  <motion.img 
-                    src={logoImg} 
+                    src="/logo.png.png" 
                     alt="Neon Escape Logo"
                     initial={{ y: -20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
-                    className="w-full max-w-[280px] h-auto drop-shadow-[0_0_20px_rgba(0,255,255,0.4)] pt-[20px]"
+                    className="w-full max-w-[240px] h-auto drop-shadow-[0_0_15px_rgba(0,255,255,0.4)]"
                  />
              </div>
 
-             <div className="absolute top-6 right-6 z-50 flex items-center gap-3">
+             {/* Left side Lives Indicator */}
+             <div className="absolute top-6 left-6 z-50">
                  <motion.div 
-                    className="group flex items-center gap-2 pr-3 pl-1 py-1 bg-black/60 backdrop-blur-md border border-[#ff5e5e]/30 rounded-md shadow-[0_0_20px_rgba(255,94,94,0.15)] relative overflow-hidden"
-                    style={{ clipPath: 'polygon(0% 0%, 95% 0%, 100% 30%, 100% 100%, 5% 100%, 0% 70%)' }}
+                    onClick={() => { audio.playTap(); onNavigate('shop'); }}
+                    className="relative flex items-center justify-center cursor-pointer active:scale-95"
                 >
-                    <div className="w-6 h-6 rounded bg-[#ff5e5e]/20 flex items-center justify-center border border-[#ff5e5e]/40">
-                        <Heart className="w-3.5 h-3.5 text-[#ff5e5e]" />
-                    </div>
-                    
-                    <div className="flex flex-col -gap-1 pb-0.5">
-                        <span className="text-[7px] font-black text-[#ff5e5e]/60 tracking-[0.2em] uppercase leading-none mb-0.5">Lives</span>
-                        <div className="flex items-center gap-2">
-                           <span className="text-sm font-black text-white font-mono tracking-tighter leading-none">{lives}/5</span>
-                           {lives < 5 && (
-                               <span className="text-[#ff5e5e] font-mono text-[10px] tracking-widest leading-none mt-0.5">
-                                   {Math.floor(timeUntilNextLife / 60)}:{(timeUntilNextLife % 60).toString().padStart(2, '0')}
-                               </span>
-                           )}
-                        </div>
-                    </div>
-                </motion.div>
-
-                <motion.div 
-                    layoutId="global-coin-counter"
-                    className="group flex items-center gap-2 pr-3 pl-1 py-1 bg-black/60 backdrop-blur-md border border-[#ffaa00]/30 rounded-md shadow-[0_0_20px_rgba(255,170,0,0.15)] relative overflow-hidden"
-                    style={{ clipPath: 'polygon(0% 0%, 95% 0%, 100% 30%, 100% 100%, 5% 100%, 0% 70%)' }}
-                >
-                    {/* Animated scanning line */}
-                    <motion.div 
-                        animate={{ x: [-100, 200] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                        className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-[#ffaa00]/10 to-transparent skew-x-[-20deg] pointer-events-none"
-                    />
-                    
-                    <div className="w-6 h-6 rounded bg-[#ffaa00]/20 flex items-center justify-center border border-[#ffaa00]/40">
-                        <Coins className="w-3.5 h-3.5 text-[#ffaa00] animate-pulse" />
-                    </div>
-                    
-                    <div className="flex flex-col -gap-1">
-                        <span className="text-[7px] font-black text-[#ffaa00]/60 tracking-[0.2em] uppercase leading-none mb-0.5">Coins</span>
-                        <span className="text-sm font-black text-white font-mono tracking-tighter leading-none">{coins}</span>
-                    </div>
+                    <img src="/lifeicon.png" alt="Lives" className="object-contain drop-shadow-[0_0_8px_rgba(255,94,94,0.4)]" style={{ width: '80px', height: '50px' }} />
+                    <span className="absolute text-sm font-black text-white font-mono" style={{ textShadow: '2px 2px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000' }}>
+                        {lives}
+                    </span>
+                    {lives < 5 && (
+                        <span className="absolute -bottom-4 text-[#ff5e5e] font-bold text-[9px] tracking-wider font-mono bg-black/60 px-1 py-0.5 rounded border border-[#ff5e5e]/20">
+                            {Math.floor(timeUntilNextLife / 60)}:{(timeUntilNextLife % 60).toString().padStart(2, '0')}
+                        </span>
+                    )}
                 </motion.div>
              </div>
 
-             <div className="flex flex-col gap-3 w-[250px] mx-auto pt-[80px]">
-                 
+             {/* Right side Coins Indicator */}
+             <div className="absolute top-6 right-6 z-50">
+                <motion.div 
+                    layoutId="global-coin-counter"
+                    onClick={() => { audio.playTap(); onNavigate('shop'); }}
+                    className="relative flex items-center justify-center cursor-pointer active:scale-95"
+                >
+                    <img src="/coinsicon.png" alt="Coins" className="object-contain drop-shadow-[0_0_8px_rgba(255,170,0,0.4)]" style={{ width: '80px', height: '50px' }} />
+                    <span className="absolute text-xs font-black text-white font-mono" style={{ textShadow: '2px 2px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000' }}>
+                        {coins}
+                    </span>
+                </motion.div>
+             </div>
+
+             <div className="flex flex-col gap-3.5 w-[250px] mx-auto pt-[51px]">
                  <button 
-                     onClick={() => onNavigate('game')}
-                     className="relative group w-full py-2.5 bg-[#000a14]/80 backdrop-blur-md border-[2px] border-[#00ccff] rounded-xl shadow-[0_0_15px_rgba(0,204,255,0.3),inset_0_0_10px_rgba(0,204,255,0.2)] hover:bg-[#00ccff]/10 text-[#00ccff] transition-all duration-300 hover:shadow-[0_0_25px_rgba(0,204,255,0.5),inset_0_0_15px_rgba(0,204,255,0.4)] active:scale-[0.98] overflow-hidden"
+                     onClick={() => { audio.playTap(); onNavigate('game'); }}
+                     className="w-full hover:scale-105 active:scale-95 transition-all duration-200 flex justify-center items-center"
                  >
-                     <div className="absolute inset-[2px] border border-white/20 rounded-lg pointer-events-none" />
-                     <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none rounded-t-lg" />
-                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#00ccff]/20 to-transparent -translate-x-[150%] group-hover:animate-[shimmer_1.5s_infinite]" />
-                     
-                     <div className="relative flex flex-col items-center justify-center gap-0.5">
-                         <span className="flex items-center justify-center gap-2 text-xl font-black tracking-[0.2em] drop-shadow-[0_0_8px_rgba(0,204,255,0.8)] uppercase">
-                             PLAY NOW <Play className="w-4 h-4 drop-shadow-[0_0_6px_rgba(0,204,255,0.8)]" fill="currentColor" />
-                         </span>
-                         <span className="text-[7.5px] font-bold tracking-[0.3em] text-white/60 uppercase">Start playing</span>
-                     </div>
+                     <img src="/playnow.png" alt="Play Now" className="h-auto object-contain drop-shadow-[0_0_12px_rgba(0,204,255,0.4)]" style={{ width: '200px' }} />
                  </button>
                  
                  <button 
-                     onClick={() => onNavigate('shop')}
-                     className="relative group w-full py-2.5 bg-[#000a14]/80 backdrop-blur-md border-[2px] border-[#00ccff] rounded-xl shadow-[0_0_15px_rgba(0,204,255,0.3),inset_0_0_10px_rgba(0,204,255,0.2)] hover:bg-[#00ccff]/10 text-[#00ccff] transition-all duration-300 hover:shadow-[0_0_25px_rgba(0,204,255,0.5),inset_0_0_15px_rgba(0,204,255,0.4)] active:scale-[0.98] overflow-hidden"
+                     onClick={() => { audio.playTap(); onNavigate('shop'); }}
+                     className="w-full hover:scale-105 active:scale-95 transition-all duration-200 flex justify-center items-center"
                  >
-                     <div className="absolute inset-[2px] border border-white/20 rounded-lg pointer-events-none" />
-                     <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none rounded-t-lg" />
-                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#00ccff]/20 to-transparent -translate-x-[150%] group-hover:translate-x-[150%] transition-transform duration-700" />
-                     
-                     <div className="relative flex flex-col items-center justify-center gap-0.5">
-                         <span className="flex items-center justify-center gap-2 text-xl font-black tracking-[0.2em] drop-shadow-[0_0_8px_rgba(0,204,255,0.8)] uppercase">
-                             SHOP NOW <ShoppingCart className="w-4 h-4 drop-shadow-[0_0_6px_rgba(0,204,255,0.8)]" />
-                         </span>
-                         <span className="text-[7.5px] font-bold tracking-[0.3em] text-white/60 uppercase">Buy power-ups</span>
-                     </div>
+                     <img src="/shopnow.png" alt="Shop Now" className="h-auto object-contain drop-shadow-[0_0_12px_rgba(0,204,255,0.4)]" style={{ width: '200px' }} />
                  </button>
                  
                  <button 
-                     onClick={() => onNavigate('settings')}
-                     className="relative group w-full py-2.5 bg-[#000a14]/80 backdrop-blur-md border-[2px] border-[#00ccff] rounded-xl shadow-[0_0_15px_rgba(0,204,255,0.3),inset_0_0_10px_rgba(0,204,255,0.2)] hover:bg-[#00ccff]/10 text-[#00ccff] transition-all duration-300 hover:shadow-[0_0_25px_rgba(0,204,255,0.5),inset_0_0_15px_rgba(0,204,255,0.4)] active:scale-[0.98] overflow-hidden"
+                     onClick={() => { audio.playTap(); onNavigate('settings'); }}
+                     className="w-full hover:scale-105 active:scale-95 transition-all duration-200 flex justify-center items-center"
                  >
-                     <div className="absolute inset-[2px] border border-white/20 rounded-lg pointer-events-none" />
-                     <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none rounded-t-lg" />
-                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#00ccff]/20 to-transparent -translate-x-[150%] group-hover:translate-x-[150%] transition-transform duration-700" />
-                     
-                     <div className="relative flex flex-col items-center justify-center gap-0.5">
-                         <span className="flex items-center justify-center gap-2 text-xl font-black tracking-[0.2em] drop-shadow-[0_0_8px_rgba(0,204,255,0.8)] uppercase">
-                             SETTINGS <Settings className="w-4 h-4 drop-shadow-[0_0_6px_rgba(0,204,255,0.8)]" />
-                         </span>
-                         <span className="text-[7.5px] font-bold tracking-[0.3em] text-white/60 uppercase">Game settings</span>
-                     </div>
+                     <img src="/setting.png" alt="Settings" className="h-auto object-contain drop-shadow-[0_0_12px_rgba(0,204,255,0.4)]" style={{ width: '200px' }} />
                  </button>
              </div>
         </motion.div>
@@ -3050,6 +3010,7 @@ function LevelsScreen({
     screwStars,
     gameMode,
     setGameMode,
+    onNavigate,
     onSelectLevel, 
     onBack 
 }: { 
@@ -3062,6 +3023,7 @@ function LevelsScreen({
     screwStars: Record<number, number>,
     gameMode: 'classic' | 'screw',
     setGameMode: (m: 'classic' | 'screw') => void,
+    onNavigate: (screen: 'game' | 'shop' | 'settings') => void,
     onSelectLevel: (lvl: number) => void, 
     onBack: () => void 
 }) {
@@ -3094,57 +3056,41 @@ function LevelsScreen({
             animate={{ opacity: 1, scale: 1 }}
             className={`fixed inset-0 w-full h-full flex flex-col items-center z-20 pt-[60px] px-4 ${Capacitor.isNativePlatform() ? 'pb-[80px]' : 'pb-8'}`}
         >
-             {/* Back Button Overlay */}
-             <div className="absolute top-6 left-6 z-30">
+             {/* Back Button Overlay with Lives next to it */}
+             <div className="absolute top-6 left-6 z-30 flex items-center gap-3">
                  <button 
                     onClick={() => { audio.playTap(); onBack(); }}
                     className="w-11 h-11 shrink-0 rounded-xl bg-[#030712]/80 border border-[#00ffff]/30 text-[#00ffff] hover:bg-[#00ffff]/10 hover:border-[#00ffff] hover:shadow-[0_0_15px_rgba(0,255,255,0.3)] flex items-center justify-center transition-all active:scale-95"
                  >
                     <span className="text-2xl font-bold leading-none pb-[2px] pr-[2px]">‹</span>
                  </button>
+
+                 <motion.div 
+                    onClick={() => { audio.playTap(); onNavigate('shop'); }}
+                    className="relative flex items-center justify-center cursor-pointer active:scale-95"
+                >
+                    <img src="/lifeicon.png" alt="Lives" className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(255,94,94,0.4)]" />
+                    <span className="absolute text-sm font-black text-white font-mono" style={{ textShadow: '2px 2px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000' }}>
+                        {lives}
+                    </span>
+                    {lives < 5 && (
+                        <span className="absolute -bottom-4 text-[#ff5e5e] font-bold text-[9px] tracking-wider font-mono bg-black/60 px-1 py-0.5 rounded border border-[#ff5e5e]/20">
+                            {Math.floor(timeUntilNextLife / 60)}:{(timeUntilNextLife % 60).toString().padStart(2, '0')}
+                        </span>
+                    )}
+                </motion.div>
              </div>
 
-             <div className="absolute top-6 right-6 z-30 flex items-center gap-3">
-                 <motion.div 
-                    className="group flex items-center gap-2 pr-3 pl-1 py-1 bg-black/60 backdrop-blur-md border border-[#ff5e5e]/30 rounded-md shadow-[0_0_20px_rgba(255,94,94,0.15)] relative overflow-hidden"
-                    style={{ clipPath: 'polygon(0% 0%, 95% 0%, 100% 30%, 100% 100%, 5% 100%, 0% 70%)' }}
-                >
-                    <div className="w-6 h-6 rounded bg-[#ff5e5e]/20 flex items-center justify-center border border-[#ff5e5e]/40">
-                        <Heart className="w-3.5 h-3.5 text-[#ff5e5e]" />
-                    </div>
-                    
-                    <div className="flex flex-col -gap-1 pb-0.5">
-                        <span className="text-[7px] font-black text-[#ff5e5e]/60 tracking-[0.2em] uppercase leading-none mb-0.5">Lives</span>
-                        <div className="flex items-center gap-2">
-                           <span className="text-sm font-black text-white font-mono tracking-tighter leading-none">{lives}/5</span>
-                           {lives < 5 && (
-                               <span className="text-[#ff5e5e] font-mono text-[10px] tracking-widest leading-none mt-0.5">
-                                   {Math.floor(timeUntilNextLife / 60)}:{(timeUntilNextLife % 60).toString().padStart(2, '0')}
-                               </span>
-                           )}
-                        </div>
-                    </div>
-                </motion.div>
-
+             <div className="absolute top-6 right-6 z-30">
                 <motion.div 
                     layoutId="global-coin-counter"
-                    className="group flex items-center gap-2 pr-3 pl-1 py-1 bg-black/60 backdrop-blur-md border border-[#ffaa00]/30 rounded-md shadow-[0_0_20px_rgba(255,170,0,0.15)] relative overflow-hidden"
-                    style={{ clipPath: 'polygon(0% 0%, 95% 0%, 100% 30%, 100% 100%, 5% 100%, 0% 70%)' }}
+                    onClick={() => { audio.playTap(); onNavigate('shop'); }}
+                    className="relative flex items-center justify-center cursor-pointer active:scale-95"
                 >
-                    <motion.div 
-                        animate={{ x: [-100, 200] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                        className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-[#ffaa00]/10 to-transparent skew-x-[-20deg] pointer-events-none"
-                    />
-                    
-                    <div className="w-6 h-6 rounded bg-[#ffaa00]/20 flex items-center justify-center border border-[#ffaa00]/40">
-                        <Coins className="w-3.5 h-3.5 text-[#ffaa00] animate-pulse" />
-                    </div>
-                    
-                    <div className="flex flex-col -gap-1">
-                        <span className="text-[7px] font-black text-[#ffaa00]/60 tracking-[0.2em] uppercase leading-none mb-0.5">Coins</span>
-                        <span className="text-sm font-black text-white font-mono tracking-tighter leading-none">{coins}</span>
-                    </div>
+                    <img src="/coinsicon.png" alt="Coins" className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(255,170,0,0.4)]" />
+                    <span className="absolute text-xs font-black text-white font-mono" style={{ textShadow: '2px 2px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000' }}>
+                        {coins}
+                    </span>
                 </motion.div>
              </div>
 
@@ -3575,44 +3521,43 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
 
              {/* Header */}
              <div className="relative w-full p-4 px-6 flex justify-between items-center bg-[#050b14]/95 border-b border-[#00ffff]/20 z-20">
-                 <button 
-                     onClick={() => { audio.playTap(); onBack(); }}
-                     className="group relative w-10 h-10 flex items-center justify-center overflow-hidden transition-all active:scale-95"
-                 >
-                     <div className="absolute inset-0 bg-[#00ffff]/5 border border-[#00ffff]/30 skew-x-[-12deg]" />
-                     <ArrowLeft className="w-5 h-5 text-[#00ffff] relative z-10 transition-transform group-hover:-translate-x-1" />
-                 </button>
+                 <div className="flex items-center gap-3">
+                     <button 
+                         onClick={() => { audio.playTap(); onBack(); }}
+                         className="group relative w-10 h-10 flex items-center justify-center overflow-hidden transition-all active:scale-95"
+                     >
+                         <div className="absolute inset-0 bg-[#00ffff]/5 border border-[#00ffff]/30 skew-x-[-12deg]" />
+                         <ArrowLeft className="w-5 h-5 text-[#00ffff] relative z-10 transition-transform group-hover:-translate-x-1" />
+                     </button>
+
+                     <div className="relative flex items-center justify-center cursor-pointer active:scale-95" >
+                        <img src="/lifeicon.png" alt="Lives" className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(255,94,94,0.4)]" />
+                        <span className="absolute text-sm font-black text-white font-mono" style={{ textShadow: '2px 2px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000' }}>
+                            {lives}
+                        </span>
+                        {lives < 5 && (
+                            <span className="absolute -bottom-4 text-[#ff5e5e] font-bold text-[9px] tracking-wider font-mono bg-black/60 px-1 py-0.5 rounded border border-[#ff5e5e]/20">
+                                {Math.floor(timeUntilNextLife / 60)}:{(timeUntilNextLife % 60).toString().padStart(2, '0')}
+                            </span>
+                        )}
+                     </div>
+                 </div>
                  
-                 <div className="flex flex-col items-center absolute left-1/2 -translate-x-1/2">
+                 <div className="hidden sm:flex flex-col items-center absolute left-1/2 -translate-x-1/2">
                     <img src={logoImg} alt="Neon Shop" className="w-20 h-auto drop-shadow-[0_0_10px_rgba(0,255,255,0.5)] mb-0.5" />
                     <div className="h-[1px] w-10 bg-gradient-to-r from-transparent via-[#00ffff] to-transparent py-0" />
                     <span className="text-[7.5px] font-black text-[#00ffff]/40 tracking-[0.4em] uppercase">Tactical Arsenal</span>
                  </div>
 
-                 <div className="flex gap-2 items-stretch">
-                     <div className="group flex flex-col justify-center items-center gap-0.5 px-2 py-1 bg-black/60 backdrop-blur-md border border-[#ff5e5e]/30 rounded-md shadow-[0_0_20px_rgba(255,94,94,0.15)] relative overflow-hidden" 
-                        style={{ clipPath: 'polygon(0% 0%, 95% 0%, 100% 30%, 100% 100%, 5% 100%, 0% 70%)', minWidth: '50px' }}>
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-4 h-4 rounded bg-[#ff5e5e]/20 flex items-center justify-center border border-[#ff5e5e]/40">
-                                <Heart className="w-2.5 h-2.5 text-[#ff5e5e]" />
-                            </div>
-                            <span className="text-[10px] font-black text-white font-mono tracking-tighter leading-none">{lives}/5</span>
-                        </div>
-                        {lives < 5 && (
-                            <span className="text-[#ff5e5e] font-mono text-[8px] tracking-widest leading-none mt-[2px]">
-                                {Math.floor(timeUntilNextLife / 60)}:{(timeUntilNextLife % 60).toString().padStart(2, '0')}
-                            </span>
-                        )}
-                     </div>
+                 <div className="flex items-center">
                      <motion.div 
                         layoutId="global-coin-counter"
-                        className="group flex items-center gap-1.5 pr-2 pl-1 py-1 bg-black/60 backdrop-blur-md border border-[#ffaa00]/30 rounded-md shadow-[0_0_20px_rgba(255,170,0,0.15)] relative overflow-hidden"
-                        style={{ clipPath: 'polygon(0% 0%, 95% 0%, 100% 30%, 100% 100%, 5% 100%, 0% 70%)' }}
+                        className="relative flex items-center justify-center cursor-pointer active:scale-95"
                      >
-                        <div className="w-5 h-5 rounded bg-[#ffaa00]/20 flex items-center justify-center border border-[#ffaa00]/40">
-                            <Coins className="w-3 h-3 text-[#ffaa00] animate-pulse" />
-                        </div>
-                        <span className="text-xs font-black text-white font-mono tracking-tighter leading-none">{coins}</span>
+                        <img src="/coinsicon.png" alt="Coins" className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(255,170,0,0.4)] animate-pulse" />
+                        <span className="absolute text-xs font-black text-white font-mono" style={{ textShadow: '2px 2px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000' }}>
+                            {coins}
+                        </span>
                      </motion.div>
                  </div>
              </div>
@@ -3624,7 +3569,7 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
                  <div className="flex flex-col gap-4 mb-6 relative w-full">
                      <div className="absolute inset-0 bg-[#ff5e5e]/5 blur-xl -z-10 rounded-full" />
                      <div className="flex items-center gap-3">
-                         <Heart className="w-5 h-5 text-[#ff5e5e]" />
+                         <img src="/lifeicon.png" alt="Life" className="w-5 h-5 object-contain" />
                          <h3 className="text-[#ff5e5e] font-black tracking-widest uppercase text-sm">Life Support</h3>
                          <div className="h-[1px] flex-1 bg-gradient-to-r from-[#ff5e5e]/50 to-transparent" />
                      </div>
@@ -3634,7 +3579,7 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
                              <div className="absolute inset-0 bg-[#ff5e5e]/5 group-hover:bg-[#ff5e5e]/10 transition-colors" />
                              <div className="flex items-center gap-3 relative z-10">
                                  <div className="w-10 h-10 rounded-lg bg-black/60 border border-[#ff5e5e]/40 flex items-center justify-center shadow-[0_0_15px_rgba(255,94,94,0.3)]">
-                                     <Heart className="w-5 h-5 text-[#ff5e5e]" />
+                                     <img src="/lifeicon.png" alt="Life" className="w-5 h-5 object-contain" />
                                  </div>
                                  <div className="flex flex-col">
                                      <span className="font-black text-white tracking-widest text-sm">+1 LIFE</span>
@@ -3653,7 +3598,7 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
                                  {lives >= 5 ? 'FULL' : (
                                      <>
                                          <span>20</span>
-                                         <Coins className="w-3 h-3" />
+                                         <img src="/coinsicon.png" alt="Coins" className="w-3.5 h-3.5 object-contain animate-pulse" />
                                      </>
                                  )}
                              </button>
@@ -3737,7 +3682,7 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
                                      <span className="font-black text-white tracking-widest text-sm mb-2" style={{ textShadow: `0 0 10px ${bundle.color}` }}>{bundle.name}</span>
                                      <div className="flex flex-wrap justify-center gap-2 mb-3">
                                          <div className="flex items-center gap-1 bg-black/60 px-2 py-1 rounded border border-white/10">
-                                             <Coins className="w-3 h-3 text-[#ffaa00]" />
+                                             <img src="/coinsicon.png" alt="Coins" className="w-3.5 h-3.5 object-contain" />
                                              <span className="text-xs font-mono text-white">{bundle.coins.toLocaleString()}</span>
                                          </div>
                                          {bundle.powerups > 0 && (
@@ -3782,7 +3727,7 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
                  <div className="flex flex-col gap-4 mb-6 relative w-full">
                      <div className="absolute inset-0 bg-[#ffaa00]/5 blur-xl -z-10 rounded-full" />
                      <div className="flex items-center gap-3">
-                         <Coins className="w-5 h-5 text-[#ffaa00]" />
+                         <img src="/coinsicon.png" alt="Coins" className="w-5 h-5 object-contain" />
                          <h3 className="text-[#ffaa00] font-black tracking-widest uppercase text-sm">Coin Packs</h3>
                          <div className="h-[1px] flex-1 bg-gradient-to-r from-[#ffaa00]/50 to-transparent" />
                      </div>
@@ -3793,7 +3738,7 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
                                  style={{ backgroundImage: `url('/inappcoinbackground.png')`, backgroundSize: '100% 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
                                  <div className="w-10 h-10 rounded-full bg-[#0a0500]/80 border-2 border-[#ffaa00] flex items-center justify-center shadow-[0_0_15px_rgba(255,170,0,0.5)] mt-2 relative z-10 overflow-hidden">
                                      <div className="absolute inset-0 bg-[#ffaa00]/20 animate-pulse" />
-                                     <Coins className="w-5 h-5 text-[#ffaa00] relative z-10 drop-shadow-[0_0_5px_rgba(255,170,0,1)]" />
+                                     <img src="/coinsicon.png" alt="Coins" className="w-5 h-5 object-contain relative z-10 drop-shadow-[0_0_5px_rgba(255,170,0,1)]" />
                                  </div>
                                  
                                  <div className="flex flex-col items-center z-10 my-1">
@@ -3873,7 +3818,7 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
                             <div className="relative flex flex-col items-center gap-0.5">
                                 <span className={`text-[10px] font-black tracking-[0.2em] ${coins >= POWERUP_COST ? 'text-[#00ffff]' : 'text-white/20'}`}>BUY</span>
                                 <div className="flex items-center gap-1">
-                                    <Coins className={`w-3.5 h-3.5 ${coins >= POWERUP_COST ? 'text-[#ffaa00]' : 'text-white/20'}`} />
+                                    <img src="/coinsicon.png" alt="Coins" className={`w-3.5 h-3.5 object-contain ${coins >= POWERUP_COST ? '' : 'opacity-20 grayscale'}`} />
                                     <span className={`text-sm font-black font-mono ${coins >= POWERUP_COST ? 'text-white' : 'text-white/20'}`}>{POWERUP_COST}</span>
                                 </div>
                             </div>
@@ -4440,6 +4385,7 @@ export default function App() {
             screwStars={screwStars}
             gameMode={gameMode}
             setGameMode={setGameMode}
+            onNavigate={(s) => { audio.playTap(); setScreen(s === 'game' ? 'levels' : s); }}
             onSelectLevel={(l) => {
                 if (lives > 0) {
                     setCurrentLevel(l);
