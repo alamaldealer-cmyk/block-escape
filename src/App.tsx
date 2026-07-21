@@ -3022,17 +3022,17 @@ function MenuScreen({
                     exit={{ opacity: 0 }}
                     className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#02050a]/95 backdrop-blur-md p-4"
                 >
-                    <motion.div 
+                     <motion.div 
                         initial={{ scale: 0.9, opacity: 0, y: 20 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.9, opacity: 0, y: 20 }}
                         transition={{ type: "spring", damping: 25, stiffness: 350 }}
-                        className="relative w-full max-w-[340px] bg-[#050b14] border border-[#ff00ff]/20 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(255,0,255,0.2)] flex flex-col items-center"
+                        className="relative w-full max-w-[340px] bg-transparent border-0 overflow-visible flex flex-col items-center"
                     >
                         {/* Interactive Close Button */}
                         <button 
                             onClick={() => { audio.playTap(); setShowAdsPopup(false); }}
-                            className="absolute top-4 right-4 text-white/70 hover:text-white transition-all p-1.5 rounded-full bg-black/60 border border-[#ff00ff]/30 hover:border-[#ff00ff] hover:shadow-[0_0_12px_rgba(255,0,255,0.6)] z-30 shadow-lg active:scale-90 cursor-pointer"
+                            className="absolute top-4 right-4 text-white/70 hover:text-white transition-all p-1.5 rounded-full bg-black/60 border border-white/20 hover:border-white/50 hover:shadow-[0_0_8px_rgba(255,255,255,0.4)] z-30 shadow-lg active:scale-90 cursor-pointer"
                         >
                             <X className="w-4.5 h-4.5" />
                         </button>
