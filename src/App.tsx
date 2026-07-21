@@ -8,8 +8,8 @@ import { motion, useMotionValue, animate, AnimatePresence } from 'motion/react';
 import { 
     Play, RotateCcw, Undo2, CheckCircle2, ChevronRight, ChevronsRight, 
     ShoppingCart, Settings, Lock, Star, Coins, Hammer, Shuffle, Ghost, PlusCircle, ArrowLeft, Eye, ArrowRight, Heart, Video, Timer, Hand, ChevronsDown,
-    MoveHorizontal, MoveVertical, Move, RotateCw
-, Zap } from 'lucide-react';
+    MoveHorizontal, MoveVertical, Move, RotateCw, Zap, Shield, Tv, X
+} from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { FirebaseAnalytics } from '@capacitor-community/firebase-analytics';
 import { AdMob, RewardAdOptions, AdLoadInfo, RewardAdPluginEvents, BannerAdOptions, BannerAdSize, BannerAdPosition } from '@capacitor-community/admob';
@@ -1077,7 +1077,7 @@ const SuccessScreen = ({
                     {/* Primary Glow */}
                     <div className="absolute inset-0 bg-[#00ffff]/20 blur-[30px] rounded-full -z-10" />
                     
-                    <img src={logoImg} alt="Logo" className="w-[160px] h-auto drop-shadow-[0_0_20px_rgba(0,255,255,0.7)] mb-4 brightness-125 saturate-150" />
+                    <img src="/logo.png.png" alt="Logo" className="w-[160px] h-auto drop-shadow-[0_0_20px_rgba(0,255,255,0.7)] mb-4 brightness-125 saturate-150" />
                     <div className="flex flex-col items-center">
                         <p className="text-[#00ffff]/90 text-[12px] font-black tracking-[0.6em] uppercase mb-1">LEVEL COMPLETE</p>
                         <div className="h-[2px] w-16 bg-gradient-to-r from-transparent via-[#00ffff] to-transparent mb-4" />
@@ -2889,7 +2889,51 @@ function SplashScreen({ onComplete }: { onComplete: () => void }) {
     );
 }
 
-function MenuScreen({ coins, lives, timeUntilNextLife, onNavigate }: { coins: number, lives: number, timeUntilNextLife: number, onNavigate: (screen: 'game' | 'shop' | 'settings') => void }) {
+function MenuScreen({ 
+    coins, 
+    lives, 
+    timeUntilNextLife, 
+    onNavigate,
+    hasAdsRemoved,
+    onRemoveAds
+}: { 
+    coins: number, 
+    lives: number, 
+    timeUntilNextLife: number, 
+    onNavigate: (screen: 'game' | 'shop' | 'settings') => void,
+    hasAdsRemoved: boolean,
+    onRemoveAds: () => void
+}) {
+    const [showAdsPopup, setShowAdsPopup] = useState(!hasAdsRemoved);
+    const [removeAdsPrice, setRemoveAdsPrice] = useState("$2.99");
+
+    useEffect(() => {
+        if (hasAdsRemoved) {
+            setShowAdsPopup(false);
+        }
+    }, [hasAdsRemoved]);
+
+    useEffect(() => {
+        const fetchPrice = async () => {
+            if (Capacitor.isNativePlatform()) {
+                try {
+                    const res = await NativePurchases.getProducts({
+                        productIdentifiers: ['remove_ads']
+                    });
+                    if (res && res.products && res.products.length > 0) {
+                        const prod = res.products.find((p: any) => p.identifier === 'remove_ads');
+                        if (prod) {
+                            setRemoveAdsPrice(prod.priceString || `${prod.price} ${prod.currencyCode}`);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch price on menu", e);
+                }
+            }
+        };
+        fetchPrice();
+    }, []);
+
     return (
         <>
             <img 
@@ -2968,6 +3012,64 @@ function MenuScreen({ coins, lives, timeUntilNextLife, onNavigate }: { coins: nu
                  </button>
              </div>
         </motion.div>
+
+        {/* Remove Ads Popup Modal */}
+        <AnimatePresence>
+            {showAdsPopup && (
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#02050a]/95 backdrop-blur-md p-4"
+                >
+                    <motion.div 
+                        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                        transition={{ type: "spring", damping: 25, stiffness: 350 }}
+                        className="relative w-full max-w-[340px] bg-[#050b14] border border-[#ff00ff]/20 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(255,0,255,0.2)] flex flex-col items-center"
+                    >
+                        {/* Interactive Close Button */}
+                        <button 
+                            onClick={() => { audio.playTap(); setShowAdsPopup(false); }}
+                            className="absolute top-4 right-4 text-white/70 hover:text-white transition-all p-1.5 rounded-full bg-black/60 border border-[#ff00ff]/30 hover:border-[#ff00ff] hover:shadow-[0_0_12px_rgba(255,0,255,0.6)] z-30 shadow-lg active:scale-90 cursor-pointer"
+                        >
+                            <X className="w-4.5 h-4.5" />
+                        </button>
+
+                        {/* Main Promotional Screen Artwork & Overlaid Buttons */}
+                        <div className="w-full relative">
+                            <img 
+                                src="/removeads.png" 
+                                alt="Remove Ads" 
+                                className="w-full h-auto object-contain block" 
+                            />
+                            
+                            {/* Call To Action Button (Buy Button) overlaid perfectly on bottom space */}
+                            <div className="absolute bottom-8 left-0 right-0 flex flex-col items-center px-6 z-20">
+                                <button
+                                    onClick={() => {
+                                        audio.playSuccessSwell();
+                                        onRemoveAds();
+                                        setShowAdsPopup(false);
+                                    }}
+                                    className="w-40 h-11 relative flex items-center justify-center font-black tracking-widest text-sm text-white active:scale-95 transition-all duration-150 drop-shadow-[0_0_8px_rgba(0,255,255,0.4)] hover:brightness-110 uppercase cursor-pointer"
+                                    style={{
+                                        backgroundImage: "url('/buybutton.png')",
+                                        backgroundSize: '100% 100%',
+                                        backgroundPosition: 'center',
+                                        backgroundRepeat: 'no-repeat',
+                                        textShadow: '0 2px 4px rgba(0,0,0,0.8)'
+                                    }}
+                                >
+                                    {removeAdsPrice}
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
         </>
     );
 }
@@ -3069,7 +3171,7 @@ function LevelsScreen({
                     onClick={() => { audio.playTap(); onNavigate('shop'); }}
                     className="relative flex items-center justify-center cursor-pointer active:scale-95"
                 >
-                    <img src="/lifeicon.png" alt="Lives" className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(255,94,94,0.4)]" />
+                    <img src="/lifeicon.png" alt="Lives" className="object-contain drop-shadow-[0_0_8px_rgba(255,94,94,0.4)]" style={{ width: '80px', height: '50px' }} />
                     <span className="absolute text-sm font-black text-white font-mono" style={{ textShadow: '2px 2px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000' }}>
                         {lives}
                     </span>
@@ -3087,7 +3189,7 @@ function LevelsScreen({
                     onClick={() => { audio.playTap(); onNavigate('shop'); }}
                     className="relative flex items-center justify-center cursor-pointer active:scale-95"
                 >
-                    <img src="/coinsicon.png" alt="Coins" className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(255,170,0,0.4)]" />
+                    <img src="/coinsicon.png" alt="Coins" className="object-contain drop-shadow-[0_0_8px_rgba(255,170,0,0.4)]" style={{ width: '80px', height: '50px' }} />
                     <span className="absolute text-xs font-black text-white font-mono" style={{ textShadow: '2px 2px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000' }}>
                         {coins}
                     </span>
@@ -3521,17 +3623,18 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
 
              {/* Header */}
              <div className="relative w-full p-4 px-6 flex justify-between items-center bg-[#050b14]/95 border-b border-[#00ffff]/20 z-20">
-                 <div className="flex items-center gap-3">
-                     <button 
-                         onClick={() => { audio.playTap(); onBack(); }}
-                         className="group relative w-10 h-10 flex items-center justify-center overflow-hidden transition-all active:scale-95"
-                     >
-                         <div className="absolute inset-0 bg-[#00ffff]/5 border border-[#00ffff]/30 skew-x-[-12deg]" />
-                         <ArrowLeft className="w-5 h-5 text-[#00ffff] relative z-10 transition-transform group-hover:-translate-x-1" />
-                     </button>
+                 <button 
+                     onClick={() => { audio.playTap(); onBack(); }}
+                     className="absolute left-4 sm:left-6 group w-10 h-10 flex items-center justify-center overflow-hidden transition-all active:scale-95 z-30"
+                 >
+                     <div className="absolute inset-0 bg-[#00ffff]/5 border border-[#00ffff]/30 skew-x-[-12deg]" />
+                     <ArrowLeft className="w-5 h-5 text-[#00ffff] relative z-10 transition-transform group-hover:-translate-x-1" />
+                 </button>
 
+                 <div className="flex w-full items-center justify-between pl-12 sm:pl-14">
+                     {/* Lives Counter */}
                      <div className="relative flex items-center justify-center cursor-pointer active:scale-95" >
-                        <img src="/lifeicon.png" alt="Lives" className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(255,94,94,0.4)]" />
+                        <img src="/lifeicon.png" alt="Lives" className="object-contain drop-shadow-[0_0_8px_rgba(255,94,94,0.4)]" style={{ width: '80px', height: '50px' }} />
                         <span className="absolute text-sm font-black text-white font-mono" style={{ textShadow: '2px 2px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000' }}>
                             {lives}
                         </span>
@@ -3541,24 +3644,26 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
                             </span>
                         )}
                      </div>
-                 </div>
-                 
-                 <div className="hidden sm:flex flex-col items-center absolute left-1/2 -translate-x-1/2">
-                    <img src={logoImg} alt="Neon Shop" className="w-20 h-auto drop-shadow-[0_0_10px_rgba(0,255,255,0.5)] mb-0.5" />
-                    <div className="h-[1px] w-10 bg-gradient-to-r from-transparent via-[#00ffff] to-transparent py-0" />
-                    <span className="text-[7.5px] font-black text-[#00ffff]/40 tracking-[0.4em] uppercase">Tactical Arsenal</span>
-                 </div>
 
-                 <div className="flex items-center">
-                     <motion.div 
-                        layoutId="global-coin-counter"
-                        className="relative flex items-center justify-center cursor-pointer active:scale-95"
-                     >
-                        <img src="/coinsicon.png" alt="Coins" className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(255,170,0,0.4)] animate-pulse" />
-                        <span className="absolute text-xs font-black text-white font-mono" style={{ textShadow: '2px 2px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000' }}>
-                            {coins}
-                        </span>
-                     </motion.div>
+                     {/* Logo in the middle of Life and Coin */}
+                     <div className="flex flex-col items-center mx-2 shrink-0">
+                        <img src="/logo.png.png" alt="Neon Shop" className="w-16 sm:w-20 h-auto drop-shadow-[0_0_10px_rgba(0,255,255,0.5)] mb-0.5" />
+                        <div className="h-[1px] w-10 bg-gradient-to-r from-transparent via-[#00ffff] to-transparent py-0" />
+                        <span className="text-[7.5px] font-black text-[#00ffff]/40 tracking-[0.4em] uppercase">Tactical Arsenal</span>
+                     </div>
+
+                     {/* Coins Counter */}
+                     <div className="flex items-center">
+                         <motion.div 
+                            layoutId="global-coin-counter"
+                            className="relative flex items-center justify-center cursor-pointer active:scale-95"
+                         >
+                            <img src="/coinsicon.png" alt="Coins" className="object-contain drop-shadow-[0_0_8px_rgba(255,170,0,0.4)]" style={{ width: '80px', height: '50px' }} />
+                            <span className="absolute text-xs font-black text-white font-mono" style={{ textShadow: '2px 2px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000' }}>
+                                {coins}
+                            </span>
+                         </motion.div>
+                     </div>
                  </div>
              </div>
 
@@ -3873,7 +3978,7 @@ function SettingsScreen({ onBack }: { onBack: () => void }) {
                 <div className="absolute bottom-0 left-1/4 w-1/2 h-[2px] bg-gradient-to-r from-transparent via-[#00ffff] to-transparent shadow-[0_0_15px_#00ffff]" />
 
                  <div className="flex flex-col items-center mb-10">
-                    <img src={logoImg} alt="Logo" className="w-32 h-auto drop-shadow-[0_0_15px_rgba(0,255,255,0.5)]" />
+                    <img src="/logo.png.png" alt="Logo" className="w-32 h-auto drop-shadow-[0_0_15px_rgba(0,255,255,0.5)]" />
                     <p className="text-[10px] text-[#00ffff]/40 font-black tracking-[0.4em] uppercase mt-2">SYSTEM CONFIGURATION</p>
                 </div>
 
@@ -4364,6 +4469,32 @@ export default function App() {
       setScreen('levels');
   };
 
+  const buyRemoveAdsGlobal = async () => {
+      setHasAdsRemoved(true);
+      const saved = JSON.parse(localStorage.getItem('neon_slide_progress') || '{}');
+      localStorage.setItem('neon_slide_progress', JSON.stringify({ ...saved, hasAdsRemoved: true }));
+      if (Capacitor.isNativePlatform()) {
+          try {
+              const result = await NativePurchases.purchaseProduct({
+                  productIdentifier: 'remove_ads',
+                  productType: PURCHASE_TYPE.INAPP
+              });
+              if (result) {
+                  try {
+                      await AdMob.hideBanner();
+                      await AdMob.removeBanner();
+                  } catch (e) {}
+                  audio.playWin();
+              }
+          } catch(e) {
+              console.error('Purchase Failed', e);
+              audio.playError();
+          }
+      } else {
+          audio.playWin();
+      }
+  };
+
   return (
     <div className={`min-h-[100dvh] bg-[#030712] text-slate-200 font-sans selection:bg-[#00ffff]/30 flex flex-col items-center justify-start pt-10 md:justify-center md:pt-4 p-4 overflow-x-hidden relative ${Capacitor.isNativePlatform() ? 'pb-[50px]' : ''}`}>
       {/* Dynamic Background */}
@@ -4374,7 +4505,16 @@ export default function App() {
       </div>
       
       {screen === 'splash' && <SplashScreen onComplete={() => setScreen('menu')} />}
-      {screen === 'menu' && <MenuScreen coins={coins} lives={lives} timeUntilNextLife={timeUntilNextLife} onNavigate={(s) => { audio.playTap(); setScreen(s === 'game' ? 'levels' : s); }} />}
+      {screen === 'menu' && (
+          <MenuScreen 
+              coins={coins} 
+              lives={lives} 
+              timeUntilNextLife={timeUntilNextLife} 
+              onNavigate={(s) => { audio.playTap(); setScreen(s === 'game' ? 'levels' : s); }} 
+              hasAdsRemoved={hasAdsRemoved}
+              onRemoveAds={buyRemoveAdsGlobal}
+          />
+      )}
       {screen === 'levels' && <LevelsScreen 
             unlockedLevel={unlockedLevel} 
             coins={coins}
