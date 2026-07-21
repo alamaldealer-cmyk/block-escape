@@ -2429,7 +2429,7 @@ function GameScreen({
                                 className={`group relative w-full h-20 bg-black/40 hover:bg-black/60 border border-[#ffaa00]/20 rounded-2xl flex items-center px-6 transition-all active:scale-[0.98] ${coins < 30 ? 'opacity-20 grayscale' : ''}`}
                             >
                                 <div className="w-12 h-12 bg-[#ffaa00]/10 rounded-xl flex items-center justify-center mr-5 border border-[#ffaa00]/20 group-hover:bg-[#ffaa00]/20 transition-all">
-                                    <img src="/coins.png" alt="Coins" className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(255,170,0,0.5)]" />
+                                    <Coins className="w-6 h-6 text-[#ffaa00] drop-shadow-[0_0_8px_rgba(255,170,0,0.5)]" />
                                 </div>
                                 <div className="flex-1 text-left">
                                     <p className="text-white font-black text-base tracking-tight uppercase leading-none mb-1">Buy Package</p>
@@ -3705,7 +3705,7 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
                                  {lives >= 5 ? 'FULL' : (
                                      <>
                                          <span>20</span>
-                                         <img src="/coins.png" alt="Coins" className="w-4 h-4 object-contain animate-pulse" />
+                                         <Coins className="w-4 h-4 text-[#ffaa00] animate-pulse" />
                                      </>
                                  )}
                              </button>
@@ -3789,7 +3789,7 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
                                      <span className="font-black text-white tracking-widest text-sm mb-2" style={{ textShadow: `0 0 10px ${bundle.color}` }}>{bundle.name}</span>
                                      <div className="flex flex-wrap justify-center gap-2 mb-3">
                                          <div className="flex items-center gap-1.5 bg-black/60 px-2 py-1 rounded border border-white/10">
-                                             <img src="/coins.png" alt="Coins" className="w-4 h-4 object-contain" />
+                                             <Coins className="w-4 h-4 text-[#ffaa00]" />
                                              <span className="text-xs font-mono text-white">{bundle.coins.toLocaleString()}</span>
                                          </div>
                                          {bundle.powerups > 0 && (
@@ -3834,7 +3834,7 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
                  <div className="flex flex-col gap-4 mb-6 relative w-full">
                      <div className="absolute inset-0 bg-[#ffaa00]/5 blur-xl -z-10 rounded-full" />
                      <div className="flex items-center gap-3">
-                         <img src="/coins.png" alt="Coins" className="w-5 h-5 object-contain" />
+                         <Coins className="w-5 h-5 text-[#ffaa00]" />
                          <h3 className="text-[#ffaa00] font-black tracking-widest uppercase text-sm">Coin Packs</h3>
                          <div className="h-[1px] flex-1 bg-gradient-to-r from-[#ffaa00]/50 to-transparent" />
                      </div>
@@ -3845,7 +3845,7 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
                                  style={{ backgroundImage: `url('/inappcoinbackground.png')`, backgroundSize: '100% 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
                                  <div className="w-12 h-12 rounded-full bg-[#0a0500]/80 border-2 border-[#ffaa00] flex items-center justify-center shadow-[0_0_15px_rgba(255,170,0,0.5)] mt-2 relative z-10 overflow-hidden">
                                      <div className="absolute inset-0 bg-[#ffaa00]/20 animate-pulse" />
-                                     <img src="/coins.png" alt="Coins" className="w-8 h-8 object-contain relative z-10 drop-shadow-[0_0_5px_rgba(255,170,0,1)]" />
+                                     <Coins className="w-6 h-6 text-[#ffaa00] relative z-10 drop-shadow-[0_0_5px_rgba(255,170,0,1)]" />
                                  </div>
                                  
                                  <div className="flex flex-col items-center z-10 my-1">
@@ -3925,7 +3925,7 @@ function ShopScreen({ coins, lives, timeUntilNextLife, setCoins, setLives, power
                             <div className="relative flex flex-col items-center gap-0.5">
                                 <span className={`text-[10px] font-black tracking-[0.2em] ${coins >= POWERUP_COST ? 'text-[#00ffff]' : 'text-white/20'}`}>BUY</span>
                                 <div className="flex items-center gap-1">
-                                    <img src="/coins.png" alt="Coins" className={`w-4 h-4 object-contain ${coins >= POWERUP_COST ? '' : 'opacity-20 grayscale'}`} />
+                                    <Coins className={`w-3.5 h-3.5 ${coins >= POWERUP_COST ? 'text-[#ffaa00]' : 'text-white/20'}`} />
                                     <span className={`text-sm font-black font-mono ${coins >= POWERUP_COST ? 'text-white' : 'text-white/20'}`}>{POWERUP_COST}</span>
                                 </div>
                             </div>
