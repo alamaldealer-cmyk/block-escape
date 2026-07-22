@@ -8,7 +8,7 @@ import { motion, useMotionValue, animate, AnimatePresence } from 'motion/react';
 import { 
     Play, RotateCcw, Undo2, CheckCircle2, ChevronRight, ChevronsRight, 
     ShoppingCart, Settings, Lock, Star, Coins, Hammer, Shuffle, Ghost, PlusCircle, ArrowLeft, Eye, ArrowRight, Heart, Video, Timer, Hand, ChevronsDown,
-    MoveHorizontal, MoveVertical, Move, RotateCw, Zap, Shield, Tv, X
+    MoveHorizontal, MoveVertical, Move, RotateCw, Zap, Shield, Tv, X, WifiOff
 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { FirebaseAnalytics } from '@capacitor-community/firebase-analytics';
@@ -4162,6 +4162,7 @@ interface PowerUpInventory {
 }
 
 export default function App() {
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [screen, setScreen] = useState<'splash' | 'menu' | 'levels' | 'game' | 'shop' | 'settings'>('splash');
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
   const [hasAdsRemoved, setHasAdsRemoved] = useState<boolean>(() => {
@@ -4326,6 +4327,19 @@ export default function App() {
       const interval = setInterval(updateTimer, 1000);
       return () => clearInterval(interval);
   }, [lives, lastLifeUpdate]);
+
+  useEffect(() => {
+      const handleOnline = () => setIsOffline(false);
+      const handleOffline = () => setIsOffline(true);
+
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+
+      return () => {
+          window.removeEventListener('online', handleOnline);
+          window.removeEventListener('offline', handleOffline);
+      };
+  }, []);
 
   // Remove the old loading useEffect as it's now handled in useState
   useEffect(() => {
@@ -4651,6 +4665,37 @@ export default function App() {
               </motion.div>
           )}
       </AnimatePresence>
+
+      <AnimatePresence>
+          {isOffline && (
+              <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex items-center justify-center p-4"
+              >
+                  <motion.div
+                      initial={{ scale: 0.9, opacity: 0, y: 30 }}
+                      animate={{ scale: 1, opacity: 1, y: 0 }}
+                      className="relative w-full max-w-[360px] flex flex-col items-center justify-center rounded-[24px] overflow-hidden"
+                  >
+                      <video src="/nointernet.mp4" autoPlay muted playsInline className="w-full h-auto object-contain" />
+                      <div className="absolute bottom-4 left-0 w-full flex justify-center">
+                          <button
+                              onClick={() => {
+                                  if (navigator.onLine) setIsOffline(false);
+                              }}
+                              className="relative z-10 w-[140px] h-[44px] text-white font-black text-sm tracking-widest flex items-center justify-center active:scale-95 transition-all"
+                              style={{ backgroundImage: `url('/buybutton.png')`, backgroundSize: '100% 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
+                          >
+                              RETRY
+                          </button>
+                      </div>
+                  </motion.div>
+              </motion.div>
+          )}
+      </AnimatePresence>
+
     </div>
   );
 }
