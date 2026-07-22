@@ -24,12 +24,20 @@
 		"classpath": "com.capacitorjs.plugins.statusbar.StatusBarPlugin"
 	},
 	{
+		"pkg": "@capawesome/capacitor-android-edge-to-edge-support",
+		"classpath": "io.capawesome.capacitorjs.plugins.androidedgetoedgesupport.EdgeToEdgePlugin"
+	},
+	{
 		"pkg": "@capawesome/capacitor-app-review",
 		"classpath": "io.capawesome.capacitorjs.plugins.appreview.AppReviewPlugin"
 	},
 	{
 		"pkg": "@capawesome/capacitor-app-update",
 		"classpath": "io.capawesome.capacitorjs.plugins.appupdate.AppUpdatePlugin"
+	},
+	{
+		"pkg": "@capawesome/capacitor-navigation-bar",
+		"classpath": "io.capawesome.capacitorjs.plugins.navigationbar.NavigationBarPlugin"
 	},
 	{
 		"pkg": "@capgo/native-purchases",

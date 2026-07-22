@@ -18,6 +18,8 @@ import { AppUpdate, AppUpdateAvailability } from '@capawesome/capacitor-app-upda
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { App as CapacitorApp } from '@capacitor/app';
 import { StatusBar } from '@capacitor/status-bar';
+import { NavigationBar } from '@capawesome/capacitor-navigation-bar';
+import { AndroidEdgeToEdgeSupport } from '@capawesome/capacitor-android-edge-to-edge-support';
 import { NativePurchases, PURCHASE_TYPE } from '@capgo/native-purchases';
 import splashImg from './assets/splash.png';
 import menuBgImg from './assets/menu_bg.png';
@@ -4349,7 +4351,8 @@ export default function App() {
           if (Capacitor.isNativePlatform()) {
               try {
                   await StatusBar.hide();
-              } catch(e) { }
+                  await NavigationBar.hide();
+              } catch(e) { console.warn("Failed to hide bars:", e); }
           }
       };
       hideBars();
